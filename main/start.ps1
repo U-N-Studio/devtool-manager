@@ -8,4 +8,5 @@ if (-not $ctk) {
     pip install -r $requirements
 }
 
-python (Join-Path $scriptDir "main.py")
+Set-Location -LiteralPath $scriptDir
+python main.py

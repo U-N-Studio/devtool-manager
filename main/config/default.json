@@ -1,0 +1,11 @@
+{
+  "app": {
+    "title": "DevTool Manager",
+    "window_size": [800, 520],
+    "min_size": [640, 400]
+  },
+  "appearance": {
+    "mode": "System",
+    "theme": "blue"
+  }
+}

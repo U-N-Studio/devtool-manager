@@ -1,7 +1,6 @@
 $ErrorActionPreference = "Stop"
-$projectRoot = Split-Path $PSScriptRoot -Parent
-$mainDir = Join-Path $projectRoot "main"
-$outputDir = Join-Path $projectRoot "output"
+$mainDir = $PSScriptRoot
+$outputDir = Join-Path $mainDir "output"
 $distDir = Join-Path $outputDir "dist"
 
 if (-not (Test-Path -LiteralPath $outputDir)) { New-Item -ItemType Directory -Path $outputDir -Force | Out-Null }
@@ -15,7 +14,21 @@ if (-not $pyInstaller) {
 }
 
 Write-Host "Building exe..." -ForegroundColor Cyan
-pyinstaller --onefile --windowed --name "DevToolManager" --distpath $distDir --workpath (Join-Path $outputDir "build") --specpath $outputDir (Join-Path $mainDir "main.py")
+pyinstaller `
+    --onefile `
+    --windowed `
+    --name "DevToolManager" `
+    --distpath $distDir `
+    --workpath (Join-Path $outputDir "build") `
+    --specpath $outputDir `
+    --paths $mainDir `
+    --hidden-import src.core.env `
+    --hidden-import src.core.packages `
+    --hidden-import src.ui.app `
+    --hidden-import src.utils.python_finder `
+    --hidden-import src.utils.logger `
+    --collect-data customtkinter `
+    (Join-Path $mainDir "main.py")
 
 if (Test-Path (Join-Path $distDir "DevToolManager.exe")) {
     Write-Host "`nBuild success!" -ForegroundColor Green
