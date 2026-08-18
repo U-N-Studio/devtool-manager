@@ -24,6 +24,9 @@ pyinstaller `
     --paths $mainDir `
     --hidden-import src.core.env `
     --hidden-import src.core.packages `
+    --hidden-import src.viewmodel.observable `
+    --hidden-import src.viewmodel.env_viewmodel `
+    --hidden-import src.viewmodel.packages_viewmodel `
     --hidden-import src.ui.app `
     --hidden-import src.utils.python_finder `
     --hidden-import src.utils.logger `
