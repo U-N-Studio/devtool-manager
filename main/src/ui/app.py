@@ -3,6 +3,8 @@ import customtkinter as ctk
 from src.viewmodel.observable import Observable
 from src.viewmodel.env_viewmodel import EnvViewModel
 from src.viewmodel.packages_viewmodel import PackagesViewModel
+from src.viewmodel.tool_info_viewmodel import ToolInfoViewModel
+from src.core.tools import TOOL_INFO_FUNCS
 
 
 ctk.set_appearance_mode("System")
@@ -89,6 +91,37 @@ class _EnvVarRow(ctk.CTkFrame):
                           command=on_delete).grid(row=0, column=3)
 
 
+class _ToolInfoCard(ctk.CTkFrame):
+    def __init__(self, parent, info: dict):
+        super().__init__(parent, corner_radius=6)
+        self.grid_columnconfigure(0, weight=1)
+
+        installed = info.get("installed", False)
+        version = info.get("version")
+        details = info.get("details", [])
+
+        if not installed and not details:
+            ctk.CTkLabel(self, text="Not installed", text_color="gray",
+                         font=ctk.CTkFont(size=12)).grid(row=0, column=0, padx=8, pady=4, sticky="w")
+            return
+
+        row_idx = 0
+        if version:
+            ctk.CTkLabel(self, text=str(version), font=ctk.CTkFont(size=13, weight="bold"),
+                         anchor="w").grid(row=row_idx, column=0, padx=8, pady=(4, 0), sticky="ew")
+            row_idx += 1
+
+        for detail in details:
+            ctk.CTkLabel(self, text=detail, font=ctk.CTkFont(size=11), anchor="w",
+                         text_color="#AAAAAA").grid(row=row_idx, column=0, padx=8, pady=0, sticky="ew")
+            row_idx += 1
+
+        home = info.get("home")
+        if home:
+            ctk.CTkLabel(self, text=f"Home: {home}", font=ctk.CTkFont(size=11), anchor="w",
+                         text_color="#AAAAAA").grid(row=row_idx, column=0, padx=8, pady=(0, 4), sticky="ew")
+
+
 class DevToolManagerApp(ctk.CTk):
     def __init__(self):
         super().__init__()
@@ -100,6 +133,7 @@ class DevToolManagerApp(ctk.CTk):
 
         self._env_vm = EnvViewModel()
         self._pkgs_vm = PackagesViewModel()
+        self._tool_vm = ToolInfoViewModel()
         self._env_data = {}
 
         self.grid_rowconfigure(0, weight=0)
@@ -134,51 +168,38 @@ class DevToolManagerApp(ctk.CTk):
     def _build_env_tab(self, parent):
         parent.grid_columnconfigure(0, weight=1)
 
-        info_frame = ctk.CTkFrame(parent, fg_color="transparent")
-        info_frame.grid(row=0, column=0, sticky="nsew", padx=10, pady=10)
-        info_frame.grid_columnconfigure(1, weight=1)
+        top_bar = ctk.CTkFrame(parent, fg_color="transparent")
+        top_bar.grid(row=0, column=0, sticky="ew", padx=10, pady=(6, 2))
+        top_bar.grid_columnconfigure(1, weight=1)
 
-        self._env_labels = {}
-        for i, name in enumerate(["Python", "Pip", "Platform", "Executable"]):
-            ctk.CTkLabel(info_frame, text=f"{name}:", anchor="w", width=90).grid(
-                row=i, column=0, sticky="w", pady=3
-            )
-            val = ctk.CTkLabel(info_frame, text="...", anchor="w")
-            val.grid(row=i, column=1, sticky="ew", padx=(8, 0), pady=3)
-            self._env_labels[name] = val
-
-        selector_frame = ctk.CTkFrame(parent, fg_color="transparent")
-        selector_frame.grid(row=1, column=0, sticky="ew", padx=10, pady=(6, 2))
-        selector_frame.grid_columnconfigure(1, weight=1)
-
-        ctk.CTkLabel(selector_frame, text="Category:", font=ctk.CTkFont(size=13)).grid(
-            row=0, column=0, padx=(0, 8)
+        ctk.CTkLabel(top_bar, text="Category:", font=ctk.CTkFont(size=12)).grid(
+            row=0, column=0, padx=(0, 6)
         )
 
-        self._cat_combobox = ctk.CTkComboBox(selector_frame, values=[""], command=self._on_category_selected)
+        self._cat_combobox = ctk.CTkComboBox(top_bar, values=[""], command=self._on_category_selected, height=28)
         self._cat_combobox.grid(row=0, column=1, sticky="ew")
 
-        legend_frame = ctk.CTkFrame(selector_frame, fg_color="transparent")
-        legend_frame.grid(row=0, column=2, padx=(16, 0))
-        ctk.CTkLabel(legend_frame, text="Source: ", font=ctk.CTkFont(size=12)).grid(row=0, column=0)
+        legend_frame = ctk.CTkFrame(top_bar, fg_color="transparent")
+        legend_frame.grid(row=0, column=2, padx=(12, 0))
+        ctk.CTkLabel(legend_frame, text="Source: ", font=ctk.CTkFont(size=11)).grid(row=0, column=0)
         for i, (src, color) in enumerate(_SOURCE_COLORS.items()):
             ctk.CTkLabel(legend_frame, text=f" {_SOURCE_LABELS[src]} ", fg_color=color,
-                         corner_radius=4, font=ctk.CTkFont(size=11, weight="bold")).grid(row=0, column=1 + i * 2, padx=(0, 2))
-            ctk.CTkLabel(legend_frame, text=f"={src.capitalize()}", font=ctk.CTkFont(size=12)).grid(row=0, column=2 + i * 2, padx=(0, 12))
+                         corner_radius=4, font=ctk.CTkFont(size=10, weight="bold")).grid(row=0, column=1 + i * 2, padx=(0, 2))
+            ctk.CTkLabel(legend_frame, text=f"={src.capitalize()}", font=ctk.CTkFont(size=11)).grid(row=0, column=2 + i * 2, padx=(0, 8))
 
-        add_frame = ctk.CTkFrame(parent, fg_color="transparent")
-        add_frame.grid(row=2, column=0, sticky="ew", padx=10, pady=(4, 2))
+        self._btn_add = ctk.CTkButton(top_bar, text="+ Add", width=80, height=28, command=self._on_add_var)
+        self._btn_add.grid(row=0, column=3, padx=(8, 0))
 
-        self._btn_add = ctk.CTkButton(add_frame, text="+ Add Variable", width=140, command=self._on_add_var)
-        self._btn_add.grid(row=0, column=0)
+        self._msg_label = ctk.CTkLabel(top_bar, text="", font=ctk.CTkFont(size=11), anchor="w")
+        self._msg_label.grid(row=0, column=4, padx=(8, 0), sticky="w")
 
-        self._msg_label = ctk.CTkLabel(add_frame, text="", font=ctk.CTkFont(size=12), anchor="w")
-        self._msg_label.grid(row=0, column=1, padx=(12, 0), sticky="w")
+        self._tool_info_frame = ctk.CTkFrame(parent, fg_color="transparent")
+        self._tool_info_frame.grid(row=1, column=0, sticky="ew", padx=10, pady=(0, 2))
 
         self._var_list = ctk.CTkScrollableFrame(parent)
-        self._var_list.grid(row=3, column=0, sticky="nsew", padx=10, pady=(0, 10))
+        self._var_list.grid(row=2, column=0, sticky="nsew", padx=10, pady=(0, 6))
         self._var_list.grid_columnconfigure(0, weight=1)
-        parent.grid_rowconfigure(3, weight=1)
+        parent.grid_rowconfigure(2, weight=1)
 
     def _build_pkgs_tab(self, parent):
         parent.grid_columnconfigure(0, weight=1)
@@ -189,10 +210,6 @@ class DevToolManagerApp(ctk.CTk):
 
     def _bind_viewmodels(self):
         vm = self._env_vm
-        vm.python_version.on_change(lambda v: self._env_labels["Python"].configure(text=v))
-        vm.pip_version.on_change(lambda v: self._env_labels["Pip"].configure(text=v))
-        vm.platform.on_change(lambda v: self._env_labels["Platform"].configure(text=v))
-        vm.executable.on_change(lambda v: self._env_labels["Executable"].configure(text=v))
         vm.categorized_env.on_change(self._update_env_categories)
         vm.is_loading.on_change(self._on_loading_changed)
         vm.message.on_change(lambda v: self._msg_label.configure(text=v))
@@ -200,10 +217,19 @@ class DevToolManagerApp(ctk.CTk):
         pvm = self._pkgs_vm
         pvm.packages_text.on_change(self._update_pkg_textbox)
 
+        self._tool_vm.tool_info.on_change(self._update_tool_info)
+
     def _on_loading_changed(self, loading):
         state = "disabled" if loading else "normal"
         self._btn_refresh.configure(state=state)
         self._btn_add.configure(state=state)
+
+    def _update_tool_info(self, info: dict):
+        for child in self._tool_info_frame.winfo_children():
+            child.destroy()
+        if info:
+            card = _ToolInfoCard(self._tool_info_frame, info)
+            card.grid(row=0, column=0, sticky="ew", padx=0, pady=(0, 6))
 
     def _update_env_categories(self, data: dict):
         self._env_data = data
@@ -226,6 +252,12 @@ class DevToolManagerApp(ctk.CTk):
 
     def _show_category(self, cat_name: str):
         self._clear_var_list()
+
+        if cat_name in TOOL_INFO_FUNCS:
+            self._tool_vm.refresh(cat_name)
+        else:
+            self._update_tool_info({})
+
         items = self._env_data.get(cat_name, [])
 
         env_items = [item for item in items if not item.get("is_path_entry")]
@@ -311,6 +343,9 @@ class DevToolManagerApp(ctk.CTk):
     def _on_refresh(self):
         self._env_vm.refresh()
         self._pkgs_vm.refresh()
+        cat = self._cat_combobox.get()
+        if cat in TOOL_INFO_FUNCS:
+            self._tool_vm.refresh(cat)
 
     def _schedule_on_ui(self, callback: callable):
         self.after(0, callback)
