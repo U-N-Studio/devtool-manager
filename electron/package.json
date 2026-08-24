@@ -1,0 +1,26 @@
+{
+  "name": "devtool-manager",
+  "version": "1.0.0",
+  "description": "DevTool Manager - Environment & Package Manager",
+  "main": "src/main/index.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder --win --x64",
+    "pack": "electron-builder --dir"
+  },
+  "devDependencies": {
+    "electron": "^33.0.0",
+    "electron-builder": "^25.0.0"
+  },
+  "build": {
+    "appId": "com.devtool.manager",
+    "productName": "DevTool Manager",
+    "win": {
+      "target": "nsis",
+      "icon": "assets/icon.ico"
+    },
+    "files": [
+      "src/**/*"
+    ]
+  }
+}

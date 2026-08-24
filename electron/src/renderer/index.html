@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DevTool Manager</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="app">
+    <div class="tab-bar">
+      <button class="tab active" data-tab="env">Environment</button>
+      <button class="tab" data-tab="packages">Packages</button>
+    </div>
+    <div id="tab-env" class="tab-content active">
+      <div class="toolbar">
+        <label>Category:</label>
+        <select id="env-category"></select>
+        <button id="env-add" class="btn btn-primary">Add</button>
+        <button id="env-refresh" class="btn btn-secondary">Refresh</button>
+        <span id="env-msg" class="msg"></span>
+      </div>
+      <div id="env-tool-info" class="tool-info"></div>
+      <div id="env-list" class="scroll-list"></div>
+    </div>
+    <div id="tab-packages" class="tab-content">
+      <div class="toolbar">
+        <label>Function:</label>
+        <select id="pkg-func"></select>
+        <label>Language:</label>
+        <select id="pkg-lang"></select>
+        <label>Status:</label>
+        <select id="pkg-install"></select>
+        <button id="pkg-install-btn" class="btn btn-primary">Install</button>
+        <span id="pkg-msg" class="msg"></span>
+      </div>
+      <div id="pkg-list" class="scroll-list"></div>
+      <div id="pkg-nav" class="pager"></div>
+    </div>
+  </div>
+  <script src="renderer.js"></script>
+</body>
+</html>

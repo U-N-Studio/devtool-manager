@@ -1,14 +1,26 @@
 import threading
 
 from src.viewmodel.observable import Observable
-from src.core.packages import get_installed_packages, install_package, uninstall_package
+from src.core.packages import get_categorized_packages, install_package, uninstall_package, FUNC_TAGS, LANG_TAGS, INSTALL_TAGS
 
 
 class PackagesViewModel:
     def __init__(self):
-        self.packages_text = Observable("")
+        self.filtered_packages = Observable([])
         self.is_loading = Observable(False)
         self.message = Observable("")
+        self.func_tags = FUNC_TAGS
+        self.lang_tags = LANG_TAGS
+        self.install_tags = INSTALL_TAGS
+        self._func_tag = ""
+        self._lang_tag = ""
+        self._install_tag = ""
+
+    def set_filters(self, func_tag: str = "", lang_tag: str = "", install_tag: str = ""):
+        self._func_tag = func_tag
+        self._lang_tag = lang_tag
+        self._install_tag = install_tag
+        self.refresh()
 
     def refresh(self):
         self.is_loading.set(True)
@@ -17,13 +29,8 @@ class PackagesViewModel:
 
     def _load(self):
         try:
-            pkgs = get_installed_packages()
-            if pkgs:
-                header = f"{'Package':<35}{'Version'}\n{'-'*55}\n"
-                lines = [f"{p['name']:<35}{p['version']}" for p in pkgs]
-                self.packages_text.set(header + "\n".join(lines))
-            else:
-                self.packages_text.set("No packages found.")
+            self.filtered_packages.set(get_categorized_packages(self._func_tag, self._lang_tag, self._install_tag))
+            self.message.set("")
         finally:
             self.is_loading.set(False)
 
@@ -39,7 +46,7 @@ class PackagesViewModel:
             self.message.set(f"Install {'success' if ok else 'failed'}: {name}")
         finally:
             self.is_loading.set(False)
-            self.refresh()
+            self._load()
 
     def uninstall(self, name: str):
         self.is_loading.set(True)
@@ -53,4 +60,4 @@ class PackagesViewModel:
             self.message.set(f"Uninstall {'success' if ok else 'failed'}: {name}")
         finally:
             self.is_loading.set(False)
-            self.refresh()
+            self._load()

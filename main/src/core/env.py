@@ -16,11 +16,12 @@ ENV_CATEGORIES = {
     "Java": [
         "JAVA_HOME", "JRE_HOME", "JDK_HOME", "CLASSPATH",
         "JAVA_OPTS", "JAVA_TOOL_OPTIONS", "_JAVA_OPTIONS",
+        "GRADLE_HOME", "MAVEN_HOME", "M2_HOME", "ANT_HOME",
     ],
     "Python": [
         "PYTHONHOME", "PYTHONPATH", "PYTHONSTARTUP", "PYTHONIOENCODING",
         "PYTHONUTF8", "PYTHONHASHSEED", "PIP_INDEX_URL", "PIP_TARGET",
-        "CONDA_PREFIX", "VIRTUAL_ENV",
+        "CONDA_PREFIX", "VIRTUAL_ENV", "POETRY_HOME",
     ],
     "Android": [
         "ANDROID_HOME", "ANDROID_SDK_ROOT", "ANDROID_NDK_HOME",
@@ -29,13 +30,42 @@ ENV_CATEGORIES = {
     ],
     "Node.js": [
         "NODE_HOME", "NODE_PATH", "NPM_CONFIG_PREFIX",
-        "NPM_CONFIG_REGISTRY", "NPM_TOKEN",
+        "NPM_CONFIG_REGISTRY", "NPM_TOKEN", "NPM_HOME",
+        "YARN_HOME", "PNPM_HOME", "BUN_INSTALL",
     ],
     "Go": [
         "GOROOT", "GOPATH", "GOBIN", "GOOS", "GOARCH", "GOMODCACHE",
     ],
     "Rust": [
         "RUSTUP_HOME", "CARGO_HOME", "RUST_SRC_PATH",
+    ],
+    "C/C++": [
+        "MINGW_HOME", "MSYS2_HOME", "CYGWIN_HOME",
+        "GCC_HOME", "CLANG_HOME", "LLVM_HOME",
+        "CMAKE_HOME", "MAKE_HOME",
+        "VCPKG_ROOT", "CONAN_HOME",
+    ],
+    "Dotnet": [
+        "DOTNET_HOME", "DOTNET_ROOT", "DOTNET_INSTALL_DIR",
+        "NUGET_PACKAGES", "NUGET_HTTP_CACHE",
+    ],
+    "Docker": [
+        "DOCKER_HOME", "DOCKER_CONFIG", "DOCKER_HOST",
+        "COMPOSE_HOME", "COMPOSE_FILE", "COMPOSE_PROJECT_NAME",
+    ],
+    "Git": [
+        "GIT_HOME", "GIT_INSTALL_ROOT", "GIT_EXEC_PATH",
+        "GIT_EDITOR", "GIT_CONFIG_GLOBAL",
+    ],
+    "IDE": [
+        "IDEA_HOME", "IDEA_PROPERTIES", "WEBIDE_HOME",
+        "VSCODE_HOME", "VSCODE_EXTENSIONS",
+        "PYCHARM_HOME", "ANDROID_STUDIO_HOME",
+    ],
+    "Proxy": [
+        "HTTP_PROXY", "HTTPS_PROXY", "FTP_PROXY",
+        "NO_PROXY", "ALL_PROXY",
+        "http_proxy", "https_proxy", "no_proxy",
     ],
     "Path": [
         "PATH", "PATHEXT",
