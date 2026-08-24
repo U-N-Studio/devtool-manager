@@ -1,23 +1,22 @@
-# DevTool Manager — 整体架构
+# DevTool Manager — 架构总览
 
 ## 技术栈
 
 | 层 | 技术 |
 |----|------|
 | 壳 | Electron 33+ |
-| 主进程 | Node.js（IPC handlers） |
+| 主进程 | Node.js (CommonJS, IPC handlers) |
 | 渲染进程 | 原生 HTML/CSS/JS |
 | IPC 桥 | contextBridge + ipcMain/ipcRenderer |
 | 构建 | electron-builder → NSIS |
 
-## 进程架构
+## 进程模型
 
 ```
 ┌──────────────────────────────────────┐
 │           主进程 (Main)               │
 │  ┌─────────┐ ┌──────────┐ ┌───────┐ │
 │  │ env.js  │ │packages.js│ │tools.js│ │
-│  │(reg/pip)│ │(pip/tags) │ │(which)│ │
 │  └────┬────┘ └─────┬────┘ └───┬───┘ │
 │       └────────────┼───────────┘      │
 │              ipcMain.handle           │
@@ -33,10 +32,20 @@
 └──────────────────────────────────────┘
 ```
 
-## 设计决策
+## 模块职责
 
-1. 渲染进程不用框架 — 无构建步骤，包体积小
-2. 主进程用 execSync — 简单直接，注册表/pip 都是短命令
-3. 标签筛选在主进程完成 — 渲染进程只渲染当前页
-4. 分页在渲染进程 — 单次最多 50 个 DOM 节点
-5. 注册表用 reg.exe — 无需 native 模块，兼容性好
+| 模块 | 职责 | 进程 |
+|------|------|------|
+| env | 环境变量分类、注册表CRUD、PATH管理 | 主 |
+| packages | pip列表、标签映射、安装/卸载 | 主 |
+| tools | 版本检测（java/python/node/go/rust/android） | 主 |
+| ui | 标签页、筛选器、列表渲染、分页、对话框 | 渲染 |
+
+## 数据流
+
+```
+用户操作 → renderer.js → window.api.xxx()
+  → ipcRenderer.invoke() → ipcMain.handle()
+  → 主进程模块 → execSync / reg.exe
+  → 返回结果 → renderer → 更新DOM
+```
