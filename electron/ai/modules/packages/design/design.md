@@ -1,5 +1,8 @@
 # packages 模块 — 设计
 
+> 需求: [prd](../requirements/prd.md) | 编码: [coding](../coding/coding.md)
+> IPC: [ipc-contract](../../architecture/ipc-contract.md) | 源码: `src/main/packages.js`
+
 ## 概要
 
 - 已安装包: `pip list --format=json`

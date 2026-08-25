@@ -1,5 +1,8 @@
 # DevTool Manager — 全局 IPC 契约
 
+> 架构: [overview](overview.md) | 决策: [design-decisions](design-decisions.md)
+> 模块详情: [env](../modules/env/design/design.md) | [packages](../modules/packages/design/design.md) | [tools](../modules/tools/design/design.md)
+
 ## env
 
 | 通道 | 参数 | 返回值 |

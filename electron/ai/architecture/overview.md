@@ -1,5 +1,8 @@
 # DevTool Manager — 架构总览
 
+> IPC契约: [ipc-contract](ipc-contract.md) | 决策记录: [design-decisions](design-decisions.md)
+> 模块: [env](../modules/env/requirements/prd.md) | [packages](../modules/packages/requirements/prd.md) | [tools](../modules/tools/requirements/prd.md) | [ui](../modules/ui/requirements/prd.md)
+
 ## 技术栈
 
 | 层 | 技术 |

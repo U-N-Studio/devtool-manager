@@ -1,5 +1,7 @@
 # DevTool Manager — 架构决策记录 (ADR)
 
+> 架构: [overview](overview.md) | IPC: [ipc-contract](ipc-contract.md)
+
 ## ADR-1: 渲染进程不用框架
 - **决策**: 使用原生 HTML/CSS/JS，不用 React/Vue
 - **原因**: 无构建步骤，包体积小，依赖少，Electron 自带浏览器引擎

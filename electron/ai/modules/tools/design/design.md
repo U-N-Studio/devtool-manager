@@ -1,5 +1,8 @@
 # tools 模块 — 设计
 
+> 需求: [prd](../requirements/prd.md) | 编码: [coding](../coding/coding.md)
+> IPC: [ipc-contract](../../architecture/ipc-contract.md) | 源码: `src/main/tools.js`
+
 ## 概要
 
 - 每个工具一个 `getXxxInfo()` 函数

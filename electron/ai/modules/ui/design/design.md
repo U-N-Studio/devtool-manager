@@ -1,5 +1,9 @@
 # ui 模块 — 设计
 
+> 需求: [prd](../requirements/prd.md) | 编码: [coding](../coding/coding.md)
+> IPC: [ipc-contract](../../architecture/ipc-contract.md) | 源码: `src/renderer/renderer.js`
+> 依赖: [env](../env/design/design.md) | [packages](../packages/design/design.md) | [tools](../tools/design/design.md)
+
 ## 布局
 
 ```

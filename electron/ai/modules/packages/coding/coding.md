@@ -1,5 +1,8 @@
 # packages 模块 — 编码
 
+> 需求: [prd](../requirements/prd.md) | 设计: [design](../design/design.md)
+> 源码: `src/main/packages.js`
+
 ## 排坑
 
 | 问题 | 原因 | 解决 |
