@@ -1,14 +1,25 @@
+import sys
+import os
 import customtkinter as ctk
 
 from src.viewmodel.observable import Observable
 from src.viewmodel.env_viewmodel import EnvViewModel
 from src.viewmodel.packages_viewmodel import PackagesViewModel
 from src.viewmodel.tool_info_viewmodel import ToolInfoViewModel
+from src.viewmodel.commands_viewmodel import CommandsViewModel
 from src.core.tools import TOOL_INFO_FUNCS
+from src.core.config_glossary import get_description
 
 
 ctk.set_appearance_mode("System")
 ctk.set_default_color_theme("blue")
+
+_CJK_FONT = "Noto Sans SC" if sys.platform == "win32" else "Noto Sans CJK SC"
+
+
+def _font(size=13, weight="normal", family=None):
+    fam = family or _CJK_FONT
+    return (fam, size)
 
 _SOURCE_COLORS = {"system": "#4A90D9", "user": "#50C878"}
 _SOURCE_LABELS = {"system": "S", "user": "U"}
@@ -70,7 +81,7 @@ class _EnvVarRow(ctk.CTkFrame):
         badge = _SOURCE_LABELS.get(source, "?")
         color = _SOURCE_COLORS.get(source, "#888")
         ctk.CTkLabel(self, text=f" {badge} ", fg_color=color, corner_radius=4,
-                     font=ctk.CTkFont(size=11, weight="bold"), width=24).grid(row=0, column=0, padx=(0, 6))
+                     font=_font(size=11, weight="bold"), width=24).grid(row=0, column=0, padx=(0, 6))
 
         if is_path_entry:
             prefix = "PATH> "
@@ -78,17 +89,87 @@ class _EnvVarRow(ctk.CTkFrame):
         else:
             prefix = ""
             display = f"{name}={value}" if len(value) <= 80 else f"{name}={value[:77]}..."
-        ctk.CTkLabel(self, text=prefix + display, anchor="w", font=ctk.CTkFont(size=13)).grid(
+        ctk.CTkLabel(self, text=prefix + display, anchor="w", font=_font(size=13)).grid(
             row=0, column=1, sticky="ew", padx=(0, 8)
         )
 
         if on_edit:
             ctk.CTkButton(self, text="Edit", width=56, height=26,
-                          font=ctk.CTkFont(size=12), command=on_edit).grid(row=0, column=2, padx=(0, 4))
+                          font=_font(size=12), command=on_edit).grid(row=0, column=2, padx=(0, 4))
         if on_delete:
             ctk.CTkButton(self, text="Del", width=56, height=26,
-                          font=ctk.CTkFont(size=12), fg_color="#D9534F", hover_color="#C9302C",
+                          font=_font(size=12), fg_color="#D9534F", hover_color="#C9302C",
                           command=on_delete).grid(row=0, column=3)
+
+
+class _CommandDetailDialog(ctk.CTkToplevel):
+    def __init__(self, parent, cmd: dict):
+        super().__init__(parent)
+        self.title(cmd["name"])
+        self.geometry("640x520")
+        self.resizable(True, True)
+        self.grab_set()
+
+        self.grid_columnconfigure(0, weight=1)
+        self.grid_rowconfigure(5, weight=1)
+
+        row = 0
+        ctk.CTkLabel(self, text=cmd["name"], font=_font(size=18, weight="bold")).grid(
+            row=row, column=0, padx=16, pady=(12, 2), sticky="w"
+        )
+        row += 1
+
+        ctk.CTkLabel(self, text=cmd.get("description", ""), font=_font(size=12),
+                     text_color="#AAAAAA").grid(row=row, column=0, padx=16, pady=0, sticky="w")
+        row += 1
+
+        info_frame = ctk.CTkFrame(self, fg_color="transparent")
+        info_frame.grid(row=row, column=0, padx=16, pady=(8, 2), sticky="ew")
+        info_frame.grid_columnconfigure(1, weight=1)
+
+        ctk.CTkLabel(info_frame, text="Version:", anchor="w", font=_font(size=12)).grid(row=0, column=0, sticky="w")
+        ctk.CTkLabel(info_frame, text=cmd.get("version", "N/A"), anchor="w", font=_font(size=12)).grid(row=0, column=1, sticky="w", padx=(8, 0))
+        ctk.CTkLabel(info_frame, text="Path:", anchor="w", font=_font(size=12)).grid(row=1, column=0, sticky="w", pady=(4, 0))
+        ctk.CTkLabel(info_frame, text=cmd.get("path", "N/A") or "N/A", anchor="w", font=_font(size=12),
+                     wraplength=500).grid(row=1, column=1, sticky="w", padx=(8, 0), pady=(4, 0))
+        row += 1
+
+        env_vars = cmd.get("env_vars", [])
+        if env_vars:
+            ctk.CTkLabel(self, text="Environment Variables", font=_font(size=13, weight="bold")).grid(
+                row=row, column=0, padx=16, pady=(8, 2), sticky="w"
+            )
+            row += 1
+            for ev in env_vars:
+                ev_frame = ctk.CTkFrame(self, fg_color="transparent")
+                ev_frame.grid(row=row, column=0, padx=16, pady=1, sticky="ew")
+                ev_frame.grid_columnconfigure(1, weight=1)
+                color = "#4CAF50" if ev["set"] else "#888888"
+                ctk.CTkLabel(ev_frame, text=ev["name"], anchor="w", font=_font(size=12, weight="bold"),
+                             width=180).grid(row=0, column=0, sticky="w")
+                val = ev["value"] if ev["set"] else "(未设置)"
+                ctk.CTkLabel(ev_frame, text=val, anchor="w", font=_font(size=12),
+                             text_color=color, wraplength=400).grid(row=0, column=1, sticky="w", padx=(8, 0))
+                row += 1
+
+        params = cmd.get("params", [])
+        if params:
+            ctk.CTkLabel(self, text="Parameters", font=_font(size=13, weight="bold")).grid(
+                row=row, column=0, padx=16, pady=(8, 2), sticky="w"
+            )
+            row += 1
+            params_frame = ctk.CTkScrollableFrame(self, height=200)
+            params_frame.grid(row=row, column=0, padx=16, pady=(0, 8), sticky="nsew")
+            params_frame.grid_columnconfigure(1, weight=1)
+            for i, p in enumerate(params):
+                ctk.CTkLabel(params_frame, text=p["flag"], anchor="w", font=_font(family="Courier", size=12),
+                             width=160).grid(row=i, column=0, sticky="w", padx=(4, 8), pady=1)
+                ctk.CTkLabel(params_frame, text=p.get("desc", ""), anchor="w", font=_font(size=12),
+                             text_color="#AAAAAA", wraplength=400).grid(row=i, column=1, sticky="w", pady=1)
+
+        ctk.CTkButton(self, text="Close", width=100, command=self.destroy).grid(
+            row=row + 1, column=0, pady=(8, 12)
+        )
 
 
 class _ToolInfoCard(ctk.CTkFrame):
@@ -102,23 +183,23 @@ class _ToolInfoCard(ctk.CTkFrame):
 
         if not installed and not details:
             ctk.CTkLabel(self, text="Not installed", text_color="gray",
-                         font=ctk.CTkFont(size=12)).grid(row=0, column=0, padx=8, pady=4, sticky="w")
+                         font=_font(size=12)).grid(row=0, column=0, padx=8, pady=4, sticky="w")
             return
 
         row_idx = 0
         if version:
-            ctk.CTkLabel(self, text=str(version), font=ctk.CTkFont(size=13, weight="bold"),
+            ctk.CTkLabel(self, text=str(version), font=_font(size=13, weight="bold"),
                          anchor="w").grid(row=row_idx, column=0, padx=8, pady=(4, 0), sticky="ew")
             row_idx += 1
 
         for detail in details:
-            ctk.CTkLabel(self, text=detail, font=ctk.CTkFont(size=11), anchor="w",
+            ctk.CTkLabel(self, text=detail, font=_font(size=11), anchor="w",
                          text_color="#AAAAAA").grid(row=row_idx, column=0, padx=8, pady=0, sticky="ew")
             row_idx += 1
 
         home = info.get("home")
         if home:
-            ctk.CTkLabel(self, text=f"Home: {home}", font=ctk.CTkFont(size=11), anchor="w",
+            ctk.CTkLabel(self, text=f"Home: {home}", font=_font(size=11), anchor="w",
                          text_color="#AAAAAA").grid(row=row_idx, column=0, padx=8, pady=(0, 4), sticky="ew")
 
 
@@ -134,10 +215,12 @@ class DevToolManagerApp(ctk.CTk):
         self._env_vm = EnvViewModel()
         self._pkgs_vm = PackagesViewModel()
         self._tool_vm = ToolInfoViewModel()
+        self._cmd_vm = CommandsViewModel()
         self._env_data = {}
 
         self.grid_rowconfigure(0, weight=0)
-        self.grid_rowconfigure(1, weight=1)
+        self.grid_rowconfigure(1, weight=0)
+        self.grid_rowconfigure(2, weight=1)
         self.grid_columnconfigure(0, weight=1)
 
         self._build_header()
@@ -151,19 +234,31 @@ class DevToolManagerApp(ctk.CTk):
         header.grid(row=0, column=0, sticky="ew")
         header.grid_columnconfigure(1, weight=1)
 
-        ctk.CTkLabel(header, text="DevTool Manager", font=ctk.CTkFont(size=20, weight="bold")).grid(
+        ctk.CTkLabel(header, text="DevTool Manager", font=_font(size=20, weight="bold")).grid(
             row=0, column=0, padx=(16, 8), pady=10
         )
 
-        self._btn_refresh = ctk.CTkButton(header, text="Refresh", width=90, command=self._on_refresh)
+        self._btn_refresh = ctk.CTkButton(header, text="刷新", width=90, command=self._on_refresh)
         self._btn_refresh.grid(row=0, column=1, sticky="e", padx=(0, 16), pady=10)
+
+        cwd_bar = ctk.CTkFrame(self, height=28, corner_radius=0, fg_color="#2B2B2B" if ctk.get_appearance_mode() == "Dark" else "#E8E8E8")
+        cwd_bar.grid(row=1, column=0, sticky="ew")
+        cwd_bar.grid_columnconfigure(1, weight=1)
+
+        ctk.CTkLabel(cwd_bar, text="当前路径:", font=_font(size=11), anchor="w").grid(
+            row=0, column=0, padx=(16, 4), pady=4, sticky="w"
+        )
+        self._cwd_label = ctk.CTkLabel(cwd_bar, text=os.getcwd(), font=_font(size=11), anchor="w",
+                                        text_color="#AAAAAA")
+        self._cwd_label.grid(row=0, column=1, padx=(0, 16), pady=4, sticky="ew")
 
     def _build_body(self):
         body = ctk.CTkTabview(self)
-        body.grid(row=1, column=0, sticky="nsew", padx=10, pady=(0, 10))
+        body.grid(row=2, column=0, sticky="nsew", padx=10, pady=(0, 10))
 
         self._build_env_tab(body.add("Environment"))
         self._build_pkgs_tab(body.add("Packages"))
+        self._build_commands_tab(body.add("Commands"))
 
     def _build_env_tab(self, parent):
         parent.grid_columnconfigure(0, weight=1)
@@ -172,7 +267,7 @@ class DevToolManagerApp(ctk.CTk):
         top_bar.grid(row=0, column=0, sticky="ew", padx=10, pady=(6, 2))
         top_bar.grid_columnconfigure(1, weight=1)
 
-        ctk.CTkLabel(top_bar, text="Category:", font=ctk.CTkFont(size=12)).grid(
+        ctk.CTkLabel(top_bar, text="Category:", font=_font(size=12)).grid(
             row=0, column=0, padx=(0, 6)
         )
 
@@ -181,16 +276,16 @@ class DevToolManagerApp(ctk.CTk):
 
         legend_frame = ctk.CTkFrame(top_bar, fg_color="transparent")
         legend_frame.grid(row=0, column=2, padx=(12, 0))
-        ctk.CTkLabel(legend_frame, text="Source: ", font=ctk.CTkFont(size=11)).grid(row=0, column=0)
+        ctk.CTkLabel(legend_frame, text="Source: ", font=_font(size=11)).grid(row=0, column=0)
         for i, (src, color) in enumerate(_SOURCE_COLORS.items()):
             ctk.CTkLabel(legend_frame, text=f" {_SOURCE_LABELS[src]} ", fg_color=color,
-                         corner_radius=4, font=ctk.CTkFont(size=10, weight="bold")).grid(row=0, column=1 + i * 2, padx=(0, 2))
-            ctk.CTkLabel(legend_frame, text=f"={src.capitalize()}", font=ctk.CTkFont(size=11)).grid(row=0, column=2 + i * 2, padx=(0, 8))
+                         corner_radius=4, font=_font(size=10, weight="bold")).grid(row=0, column=1 + i * 2, padx=(0, 2))
+            ctk.CTkLabel(legend_frame, text=f"={src.capitalize()}", font=_font(size=11)).grid(row=0, column=2 + i * 2, padx=(0, 8))
 
         self._btn_add = ctk.CTkButton(top_bar, text="+ Add", width=80, height=28, command=self._on_add_var)
         self._btn_add.grid(row=0, column=3, padx=(8, 0))
 
-        self._msg_label = ctk.CTkLabel(top_bar, text="", font=ctk.CTkFont(size=11), anchor="w")
+        self._msg_label = ctk.CTkLabel(top_bar, text="", font=_font(size=11), anchor="w")
         self._msg_label.grid(row=0, column=4, padx=(8, 0), sticky="w")
 
         self._tool_info_frame = ctk.CTkFrame(parent, fg_color="transparent")
@@ -209,7 +304,7 @@ class DevToolManagerApp(ctk.CTk):
         top_bar.grid(row=0, column=0, sticky="ew", padx=10, pady=(6, 4))
         top_bar.grid_columnconfigure(7, weight=1)
 
-        ctk.CTkLabel(top_bar, text="Function:", font=ctk.CTkFont(size=12)).grid(row=0, column=0, padx=(0, 4))
+        ctk.CTkLabel(top_bar, text="Function:", font=_font(size=12)).grid(row=0, column=0, padx=(0, 4))
         func_values = ["All"] + self._pkgs_vm.func_tags
         self._pkg_func_combobox = ctk.CTkComboBox(
             top_bar, values=func_values, command=self._on_pkg_func_filter,
@@ -218,7 +313,7 @@ class DevToolManagerApp(ctk.CTk):
         self._pkg_func_combobox.set("All")
         self._pkg_func_combobox.grid(row=0, column=1)
 
-        ctk.CTkLabel(top_bar, text="Language:", font=ctk.CTkFont(size=12)).grid(row=0, column=2, padx=(8, 4))
+        ctk.CTkLabel(top_bar, text="Language:", font=_font(size=12)).grid(row=0, column=2, padx=(8, 4))
         lang_values = ["All"] + self._pkgs_vm.lang_tags
         self._pkg_lang_combobox = ctk.CTkComboBox(
             top_bar, values=lang_values, command=self._on_pkg_lang_filter,
@@ -227,7 +322,7 @@ class DevToolManagerApp(ctk.CTk):
         self._pkg_lang_combobox.set("All")
         self._pkg_lang_combobox.grid(row=0, column=3)
 
-        ctk.CTkLabel(top_bar, text="Status:", font=ctk.CTkFont(size=12)).grid(row=0, column=4, padx=(8, 4))
+        ctk.CTkLabel(top_bar, text="Status:", font=_font(size=12)).grid(row=0, column=4, padx=(8, 4))
         install_values = ["All"] + self._pkgs_vm.install_tags
         self._pkg_install_combobox = ctk.CTkComboBox(
             top_bar, values=install_values, command=self._on_pkg_install_filter,
@@ -239,12 +334,149 @@ class DevToolManagerApp(ctk.CTk):
         self._btn_pkg_install = ctk.CTkButton(top_bar, text="Install", width=80, height=28, command=self._on_install_pkg)
         self._btn_pkg_install.grid(row=0, column=6, padx=(8, 0))
 
-        self._pkg_msg_label = ctk.CTkLabel(top_bar, text="", font=ctk.CTkFont(size=11), anchor="w")
+        self._pkg_msg_label = ctk.CTkLabel(top_bar, text="", font=_font(size=11), anchor="w")
         self._pkg_msg_label.grid(row=0, column=5, padx=(8, 0), sticky="w")
 
         self._pkg_detail_list = ctk.CTkScrollableFrame(parent)
         self._pkg_detail_list.grid(row=1, column=0, sticky="nsew", padx=10, pady=(0, 6))
         self._pkg_detail_list.grid_columnconfigure(0, weight=1)
+
+    def _build_commands_tab(self, parent):
+        parent.grid_columnconfigure(0, weight=1)
+        parent.grid_rowconfigure(2, weight=1)
+
+        top_bar = ctk.CTkFrame(parent, fg_color="transparent")
+        top_bar.grid(row=0, column=0, sticky="ew", padx=10, pady=(6, 4))
+        top_bar.grid_columnconfigure(1, weight=1)
+
+        ctk.CTkLabel(top_bar, text="命令:", font=_font(size=12)).grid(row=0, column=0, padx=(0, 6))
+        self._cmd_combobox = ctk.CTkComboBox(top_bar, values=[""], command=self._on_cmd_selected, height=28)
+        self._cmd_combobox.grid(row=0, column=1, sticky="ew")
+
+        self._cmd_filter_var = ctk.StringVar(value="全部")
+        ctk.CTkSegmentedButton(top_bar, values=["全部", "已安装"], variable=self._cmd_filter_var,
+                               command=self._on_cmd_filter).grid(row=0, column=2, padx=(8, 0))
+
+        self._btn_cmd_refresh = ctk.CTkButton(top_bar, text="刷新", width=80, height=28, command=self._on_cmd_refresh)
+        self._btn_cmd_refresh.grid(row=0, column=3, padx=(8, 0))
+
+        self._cmd_msg_label = ctk.CTkLabel(top_bar, text="", font=_font(size=11), anchor="w")
+        self._cmd_msg_label.grid(row=0, column=4, padx=(8, 0), sticky="w")
+
+        self._cmd_detail_frame = ctk.CTkScrollableFrame(parent)
+        self._cmd_detail_frame.grid(row=2, column=0, sticky="nsew", padx=10, pady=(0, 6))
+        self._cmd_detail_frame.grid_columnconfigure(0, weight=1)
+
+    def _on_cmd_selected(self, name: str):
+        self._cmd_vm.select_command(name)
+
+    def _on_cmd_filter(self, value: str):
+        self._cmd_vm.set_filter_installed(value == "已安装")
+
+    def _on_cmd_refresh(self):
+        self._cmd_vm.refresh()
+
+    def _update_cmd_names(self, names: list):
+        if names:
+            self._cmd_combobox.configure(values=names)
+            self._cmd_combobox.set(names[0])
+            self._cmd_vm.select_command(names[0])
+        else:
+            self._cmd_combobox.configure(values=[""])
+            self._cmd_combobox.set("")
+            self._clear_cmd_detail()
+
+    def _update_cmd_detail(self, cmd):
+        if cmd:
+            self._render_cmd_detail(cmd)
+
+    def _clear_cmd_detail(self):
+        for child in self._cmd_detail_frame.winfo_children():
+            child.destroy()
+
+    def _render_cmd_detail(self, cmd: dict):
+        self._clear_cmd_detail()
+        f = self._cmd_detail_frame
+        f.grid_columnconfigure(1, weight=1)
+
+        row = 0
+        ctk.CTkLabel(f, text=cmd["name"], font=_font(size=20, weight="bold")).grid(
+            row=row, column=0, columnspan=2, padx=8, pady=(8, 2), sticky="w")
+        row += 1
+
+        ctk.CTkLabel(f, text=cmd.get("description", ""), font=_font(size=12),
+                     text_color="#AAAAAA").grid(row=row, column=0, columnspan=2, padx=8, pady=0, sticky="w")
+        row += 1
+
+        installed = cmd.get("installed", False)
+        status_text = "已安装" if installed else "未安装"
+        status_color = "#4CAF50" if installed else "#FF9800"
+        ctk.CTkLabel(f, text=status_text, font=_font(size=12, weight="bold"),
+                     text_color=status_color).grid(row=row, column=0, columnspan=2, padx=8, pady=(4, 8), sticky="w")
+        row += 1
+
+        fields = [
+            ("版本", cmd.get("version", "") or "N/A"),
+            ("路径", cmd.get("path", "") or "N/A"),
+        ]
+        for label, value in fields:
+            ctk.CTkLabel(f, text=label + ":", anchor="w", font=_font(size=12, weight="bold")).grid(
+                row=row, column=0, padx=(8, 4), pady=3, sticky="w")
+            ctk.CTkLabel(f, text=value, anchor="w", font=_font(size=12), wraplength=600).grid(
+                row=row, column=1, padx=(0, 8), pady=3, sticky="ew")
+            row += 1
+
+        env_vars = cmd.get("env_vars", [])
+        if env_vars:
+            ctk.CTkLabel(f, text="── 环境变量 ──", font=_font(size=12, weight="bold"),
+                         text_color="#AAAAAA").grid(row=row, column=0, columnspan=2, padx=8, pady=(12, 4), sticky="w")
+            row += 1
+            for ev in env_vars:
+                color = "#4CAF50" if ev["set"] else "#888888"
+                ctk.CTkLabel(f, text=ev["name"], anchor="w", font=_font(size=12, weight="bold"),
+                             width=200).grid(row=row, column=0, padx=(8, 4), pady=2, sticky="w")
+                val = ev["value"] if ev["set"] else "(未设置)"
+                ctk.CTkLabel(f, text=val, anchor="w", font=_font(size=12),
+                             text_color=color, wraplength=500).grid(row=row, column=1, padx=(0, 8), pady=2, sticky="ew")
+                row += 1
+
+        params = cmd.get("params", [])
+        if params:
+            ctk.CTkLabel(f, text="── 参数列表 ──", font=_font(size=12, weight="bold"),
+                         text_color="#AAAAAA").grid(row=row, column=0, columnspan=2, padx=8, pady=(12, 4), sticky="w")
+            row += 1
+            for p in params:
+                ctk.CTkLabel(f, text=p["flag"], anchor="w", font=_font(family="Courier", size=12),
+                             width=200).grid(row=row, column=0, padx=(8, 4), pady=2, sticky="w")
+                ctk.CTkLabel(f, text=p.get("desc", ""), anchor="w", font=_font(size=12),
+                             text_color="#AAAAAA", wraplength=500).grid(row=row, column=1, padx=(0, 8), pady=2, sticky="ew")
+                row += 1
+
+        config_sections = cmd.get("config_sections", [])
+        if config_sections:
+            ctk.CTkLabel(f, text="── 配置信息 ──", font=_font(size=12, weight="bold"),
+                         text_color="#AAAAAA").grid(row=row, column=0, columnspan=2, padx=8, pady=(12, 4), sticky="w")
+            row += 1
+            for section in config_sections:
+                level = section.get("level", "")
+                ctk.CTkLabel(f, text=f"  [{level}]", font=_font(size=12, weight="bold"),
+                             text_color="#6BA3D6").grid(row=row, column=0, columnspan=2, padx=8, pady=(8, 2), sticky="w")
+                row += 1
+                for item in section.get("items", []):
+                    key = item["key"]
+                    ctk.CTkLabel(f, text=key, anchor="w", font=_font(size=12, weight="bold"),
+                                 width=200).grid(row=row, column=0, padx=(20, 4), pady=1, sticky="w")
+                    val = item.get("value", "")
+                    if len(val) > 80:
+                        val = val[:77] + "..."
+                    ctk.CTkLabel(f, text=val, anchor="w", font=_font(size=12),
+                                 text_color="#AAAAAA", wraplength=500).grid(row=row, column=1, padx=(0, 8), pady=1, sticky="ew")
+                    row += 1
+                    desc = get_description(key)
+                    if desc:
+                        ctk.CTkLabel(f, text=desc, anchor="w", font=_font(size=11),
+                                     text_color="#666666", wraplength=500).grid(row=row, column=1, padx=(0, 8), pady=0, sticky="ew")
+                        row += 1
 
     def _bind_viewmodels(self):
         vm = self._env_vm
@@ -259,10 +491,20 @@ class DevToolManagerApp(ctk.CTk):
 
         self._tool_vm.tool_info.on_change(self._update_tool_info)
 
+        cvm = self._cmd_vm
+        cvm.command_names.on_change(self._update_cmd_names)
+        cvm.selected_detail.on_change(self._update_cmd_detail)
+        cvm.is_loading.on_change(self._on_cmd_loading_changed)
+        cvm.message.on_change(lambda v: self._cmd_msg_label.configure(text=v))
+
     def _on_loading_changed(self, loading):
         state = "disabled" if loading else "normal"
         self._btn_refresh.configure(state=state)
         self._btn_add.configure(state=state)
+
+    def _on_cmd_loading_changed(self, loading):
+        state = "disabled" if loading else "normal"
+        self._btn_cmd_refresh.configure(state=state)
 
     def _update_tool_info(self, info: dict):
         for child in self._tool_info_frame.winfo_children():
@@ -315,7 +557,7 @@ class DevToolManagerApp(ctk.CTk):
 
         if path_items:
             if env_items:
-                sep = ctk.CTkLabel(self._var_list, text="── PATH Entries ──", font=ctk.CTkFont(size=12), text_color="gray")
+                sep = ctk.CTkLabel(self._var_list, text="── PATH Entries ──", font=_font(size=12), text_color="gray")
                 sep.grid(row=row_idx, column=0, sticky="w", pady=(8, 4))
                 row_idx += 1
             for item in path_items:
@@ -419,25 +661,25 @@ class DevToolManagerApp(ctk.CTk):
             row.grid(row=i, column=0, sticky="ew", pady=1)
             row.grid_columnconfigure(3, weight=1)
 
-            ctk.CTkLabel(row, text=item["func_tag"], anchor="w", font=ctk.CTkFont(size=11),
+            ctk.CTkLabel(row, text=item["func_tag"], anchor="w", font=_font(size=11),
                          text_color="#6BA3D6", width=90).grid(row=0, column=0, padx=(0, 4), sticky="w")
-            ctk.CTkLabel(row, text=item["lang_tag"], anchor="w", font=ctk.CTkFont(size=11),
+            ctk.CTkLabel(row, text=item["lang_tag"], anchor="w", font=_font(size=11),
                          text_color="#8BC34A", width=60).grid(row=0, column=1, padx=(0, 4), sticky="w")
             status_color = "#4CAF50" if item["install_tag"] == "Installed" else "#FF9800"
-            ctk.CTkLabel(row, text=item["install_tag"], anchor="w", font=ctk.CTkFont(size=11),
+            ctk.CTkLabel(row, text=item["install_tag"], anchor="w", font=_font(size=11),
                          text_color=status_color, width=80).grid(row=0, column=2, padx=(0, 8), sticky="w")
-            ctk.CTkLabel(row, text=item["name"], anchor="w", font=ctk.CTkFont(size=13)).grid(
+            ctk.CTkLabel(row, text=item["name"], anchor="w", font=_font(size=13)).grid(
                 row=0, column=3, sticky="w"
             )
-            ctk.CTkLabel(row, text=item.get("version", ""), anchor="e", font=ctk.CTkFont(size=12),
+            ctk.CTkLabel(row, text=item.get("version", ""), anchor="e", font=_font(size=12),
                          text_color="#AAAAAA").grid(row=0, column=4, sticky="e", padx=(0, 8))
 
             if item["install_tag"] == "Installed":
-                ctk.CTkButton(row, text="Del", width=48, height=24, font=ctk.CTkFont(size=11),
+                ctk.CTkButton(row, text="Del", width=48, height=24, font=_font(size=11),
                               fg_color="#D9534F", hover_color="#C9302C",
                               command=lambda n=item["name"]: self._on_uninstall_pkg(n)).grid(row=0, column=5)
             else:
-                ctk.CTkButton(row, text="Add", width=48, height=24, font=ctk.CTkFont(size=11),
+                ctk.CTkButton(row, text="Add", width=48, height=24, font=_font(size=11),
                               fg_color="#5CB85C", hover_color="#449D44",
                               command=lambda n=item["name"]: self._on_install_pkg_name(n)).grid(row=0, column=5)
 
@@ -448,13 +690,13 @@ class DevToolManagerApp(ctk.CTk):
 
             total_pages = (total + ps - 1) // ps
             info = f"{start+1}-{end} / {total}"
-            ctk.CTkLabel(nav, text=info, font=ctk.CTkFont(size=11)).grid(row=0, column=1)
+            ctk.CTkLabel(nav, text=info, font=_font(size=11)).grid(row=0, column=1)
 
             if page > 0:
-                ctk.CTkButton(nav, text="< Prev", width=70, height=24, font=ctk.CTkFont(size=11),
+                ctk.CTkButton(nav, text="< Prev", width=70, height=24, font=_font(size=11),
                               command=self._pkg_prev_page).grid(row=0, column=0, padx=(0, 4))
             if page < total_pages - 1:
-                ctk.CTkButton(nav, text="Next >", width=70, height=24, font=ctk.CTkFont(size=11),
+                ctk.CTkButton(nav, text="Next >", width=70, height=24, font=_font(size=11),
                               command=self._pkg_next_page).grid(row=0, column=2, padx=(4, 0))
 
     def _pkg_prev_page(self):
@@ -484,6 +726,7 @@ class DevToolManagerApp(ctk.CTk):
     def _on_refresh(self):
         self._env_vm.refresh()
         self._pkgs_vm.refresh()
+        self._cmd_vm.refresh()
         cat = self._cat_combobox.get()
         if cat in TOOL_INFO_FUNCS:
             self._tool_vm.refresh(cat)
