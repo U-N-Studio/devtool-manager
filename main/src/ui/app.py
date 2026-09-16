@@ -6,10 +6,12 @@ from src.viewmodel.env_viewmodel import EnvViewModel
 from src.viewmodel.packages_viewmodel import PackagesViewModel
 from src.viewmodel.tool_info_viewmodel import ToolInfoViewModel
 from src.viewmodel.commands_viewmodel import CommandsViewModel
+from src.viewmodel.executor_viewmodel import ExecutorViewModel
 from src.ui.fonts import font as _font
 from src.ui.env_tab import EnvTab
 from src.ui.packages_tab import PackagesTab
 from src.ui.commands_tab import CommandsTab
+from src.ui.execute_tab import ExecuteTab
 from src.core.tools import TOOL_INFO_FUNCS
 
 
@@ -30,6 +32,7 @@ class DevToolManagerApp(ctk.CTk):
         self._pkgs_vm = PackagesViewModel()
         self._tool_vm = ToolInfoViewModel()
         self._cmd_vm = CommandsViewModel()
+        self._exec_vm = ExecutorViewModel()
 
         self.grid_rowconfigure(0, weight=0)
         self.grid_rowconfigure(1, weight=0)
@@ -73,12 +76,14 @@ class DevToolManagerApp(ctk.CTk):
         self._env_tab = EnvTab(body.add("Environment"), self._env_vm, self._tool_vm)
         self._pkgs_tab = PackagesTab(body.add("Packages"), self._pkgs_vm)
         self._cmd_tab = CommandsTab(body.add("Commands"), self._cmd_vm)
+        self._exec_tab = ExecuteTab(body.add("Execute"), self._exec_vm)
 
     def _bind_viewmodels(self):
         self._env_vm.is_loading.on_change(self._on_loading_changed)
         self._env_tab.bind_viewmodels()
         self._pkgs_tab.bind_viewmodels()
         self._cmd_tab.bind_viewmodels()
+        self._exec_tab.bind_viewmodels()
 
     def _on_loading_changed(self, loading):
         state = "disabled" if loading else "normal"
