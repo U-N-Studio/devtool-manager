@@ -1,0 +1,33 @@
+apiVersion: v1
+kind: Tool
+metadata:
+  name: file
+  description: File system operations
+
+tools:
+  - name: read_file
+    description: Read file contents
+    parameters:
+      - { name: path, type: string, required: true }
+      - { name: encoding, type: string, default: utf-8 }
+    returns: string
+    security: read-only
+    side_effects: none
+
+  - name: write_file
+    description: Write content to file
+    parameters:
+      - { name: path, type: string, required: true }
+      - { name: content, type: string, required: true }
+    returns: void
+    security: requires-confirmation
+    side_effects: writes-filesystem
+
+  - name: list_directory
+    description: List files matching glob
+    parameters:
+      - { name: path, type: string, required: true }
+      - { name: pattern, type: string, default: "*" }
+    returns: array<string>
+    security: read-only
+    side_effects: none

@@ -1,0 +1,48 @@
+apiVersion: v1
+kind: Agent
+metadata:
+  name: planner
+  description: Decomposes tasks, identifies approach, sequences work
+  labels:
+    role: planning
+    scope: task-decomposition
+
+spec:
+  capabilities:
+    - task-decomposition
+    - dependency-analysis
+    - approach-selection
+    - risk-identification
+
+  inputs:
+    - name: task
+      type: string
+      required: true
+    - name: context
+      type: object
+      required: false
+
+  outputs:
+    - name: approach
+      type: string
+      description: Selected approach (implement/fix/refactor/explore)
+    - name: steps
+      type: array
+      description: Ordered steps with agent assignments
+    - name: risks
+      type: array
+      description: Identified risks and mitigations
+
+  tools:
+    - search_files
+    - find_definitions
+    - read_file
+
+  constraints:
+    - Must inspect existing codebase before planning
+    - Must identify affected modules/files
+    - Must flag risky changes (breaking API, cross-module impact)
+
+  stop_conditions:
+    - Plan is complete and all steps have agent assignments
+    - Task is ambiguous — ask for clarification

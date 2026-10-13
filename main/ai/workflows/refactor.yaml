@@ -1,0 +1,51 @@
+apiVersion: v1
+kind: Workflow
+metadata:
+  name: refactor
+  description: Restructure code without changing behavior
+  triggers: ["refactor", "restructure", "clean up", "simplify", "optimize structure"]
+
+spec:
+  scenario: |
+    User wants to restructure existing code for better maintainability
+    without changing external behavior.
+
+  approach:
+    1. **Scope** — Identify what to refactor and why
+    2. **Baseline** — Run all tests to establish green baseline
+    3. **Refactor** — Apply changes in small, verifiable steps
+    4. **Verify** — Run tests after each step; stop if red
+    5. **Review** — Check that behavior is preserved
+
+  agent_sequence:
+    - agent: planner
+      action: define refactor scope + strategy + risk assessment
+    - agent: coder
+      action: refactor in incremental steps (not one big change)
+    - agent: reviewer
+      action: verify behavior preservation + architecture improvement
+
+  feedback_loops:
+    incremental_verify:
+      - after each refactor step → run tests
+      - tests red → revert last step → try alternative
+      - lint → fix → re-lint
+    final_review:
+      - reviewer checks no behavior change
+      - reviewer checks architecture actually improved
+
+  stop_conditions:
+    - All refactor steps applied, all tests green, reviewer confirms improvement
+    - OR test regression that can't be resolved (revert and report)
+
+  constraints:
+    - Must not change public API behavior
+    - Must refactor incrementally, not in one big bang
+    - Must have green test baseline before starting
+    - Must be able to revert at any point
+
+  required_context:
+    - project/AGENTS.md
+    - project/conventions/architecture.md
+    - All tests for affected modules
+    - Current test coverage report

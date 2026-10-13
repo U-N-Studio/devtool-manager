@@ -1,0 +1,46 @@
+apiVersion: v1
+kind: Workflow
+metadata:
+  name: bugfix
+  description: Fix a reported bug
+  triggers: ["fix", "bug", "broken", "crash", "error", "issue"]
+
+spec:
+  scenario: |
+    User reports a bug that needs to be fixed.
+
+  approach:
+    1. **Reproduce** — Understand the bug report, locate relevant code
+    2. **Diagnose** — Trace the root cause, identify the fix scope
+    3. **Fix** — Apply minimal fix, no over-engineering
+    4. **Verify** — Run existing tests + new regression test
+    5. **Review** — Ensure fix doesn't break other paths
+
+  agent_sequence:
+    - agent: planner
+      action: locate bug → trace root cause → define fix scope
+    - agent: coder
+      action: apply minimal fix
+    - agent: coder
+      action: write regression test
+    - agent: reviewer
+      action: review fix for side effects + correctness
+
+  feedback_loops:
+    verify_after_fix:
+      - existing tests → if fail → fix broke something → revert or adjust
+      - regression test → if fail → fix is incomplete → re-fix
+      - lint → if fail → fix style → re-lint
+    review_after_verify:
+      - reviewer finds critical → coder adjusts → re-verify
+
+  stop_conditions:
+    - Bug is fixed, regression test passes, all existing tests pass, reviewer approves
+    - OR fix attempts exhausted (report diagnosis for manual fix)
+
+  required_context:
+    - project/AGENTS.md
+    - project/conventions/*
+    - Bug report / reproduction steps
+    - Code in the bug's call stack
+    - Tests covering the buggy path

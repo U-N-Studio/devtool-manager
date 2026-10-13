@@ -1,0 +1,41 @@
+apiVersion: v1
+kind: Tool
+metadata:
+  name: shell
+  description: Command execution
+
+tools:
+  - name: run_command
+    description: Execute shell command
+    parameters:
+      - { name: command, type: string, required: true }
+      - { name: timeout, type: integer, default: 60 }
+      - { name: cwd, type: string, required: false }
+    returns: { exit_code: int, stdout: string, stderr: string }
+    security: requires-confirmation
+    side_effects: executes-arbitrary-code
+    sandbox: recommended
+
+  - name: run_lint
+    description: Run linter
+    parameters:
+      - { name: path, type: string, required: true }
+    returns: { success: bool, output: string }
+    security: read-only
+    side_effects: none
+
+  - name: run_tests
+    description: Run test suite
+    parameters:
+      - { name: path, type: string, default: "tests/" }
+    returns: { success: bool, output: string }
+    security: sandboxed
+    side_effects: executes-code
+
+  - name: format_code
+    description: Format code
+    parameters:
+      - { name: path, type: string, required: true }
+    returns: { success: bool, output: string }
+    security: requires-confirmation
+    side_effects: modifies-files

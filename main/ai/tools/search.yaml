@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: Tool
+metadata:
+  name: search
+  description: Code search and navigation
+
+tools:
+  - name: search_files
+    description: Search files by regex pattern
+    parameters:
+      - { name: directory, type: string, required: true }
+      - { name: pattern, type: string, required: true }
+      - { name: file_glob, type: string, default: "*.py" }
+    returns: array<{ file, line, content }>
+    security: read-only
+    side_effects: none
+
+  - name: find_definitions
+    description: Find class/function/variable definitions
+    parameters:
+      - { name: directory, type: string, required: true }
+      - { name: name, type: string, required: true }
+    returns: array<{ file, line, content }>
+    security: read-only
+    side_effects: none

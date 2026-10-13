@@ -1,0 +1,47 @@
+apiVersion: v1
+kind: Tool
+metadata:
+  name: vcs
+  description: Version control operations
+
+tools:
+  - name: git_status
+    description: Show working tree status
+    parameters: []
+    returns: string
+    security: read-only
+    side_effects: none
+
+  - name: git_diff
+    description: Show changes
+    parameters:
+      - { name: path, type: string, required: false }
+    returns: string
+    security: read-only
+    side_effects: none
+
+  - name: git_log
+    description: Show commit history
+    parameters:
+      - { name: count, type: integer, default: 10 }
+    returns: string
+    security: read-only
+    side_effects: none
+
+  - name: git_commit
+    description: Commit changes
+    parameters:
+      - { name: message, type: string, required: true }
+      - { name: files, type: array<string>, required: false }
+    returns: { success: bool, hash: string }
+    security: requires-confirmation
+    side_effects: modifies-repository
+
+  - name: git_branch
+    description: Create or switch branch
+    parameters:
+      - { name: name, type: string, required: true }
+      - { name: create, type: boolean, default: false }
+    returns: void
+    security: requires-confirmation
+    side_effects: modifies-repository

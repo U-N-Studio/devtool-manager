@@ -1,0 +1,45 @@
+apiVersion: v1
+kind: Workflow
+metadata:
+  name: feature
+  description: Implement a new feature
+  triggers: ["implement", "add feature", "new feature", "create"]
+
+spec:
+  scenario: |
+    User wants to add new functionality to the project.
+
+  approach:
+    1. **Understand** — Read AGENTS.md, conventions, existing code
+    2. **Plan** — Identify affected modules, plan changes, flag risks
+    3. **Implement** — Write code following conventions
+    4. **Verify** — Lint, format, test, typecheck
+    5. **Review** — Self-review against conventions and architecture
+
+  agent_sequence:
+    - agent: planner
+      action: decompose task → identify approach + affected files + risks
+    - agent: coder
+      action: implement changes per plan
+    - agent: coder
+      action: write tests for new code
+    - agent: reviewer
+      action: review diff for quality + convention adherence
+
+  feedback_loops:
+    verify_after_implement:
+      - lint → if fail → coder fixes → re-lint (max 3)
+      - test → if fail → coder fixes → re-test (max 3)
+      - typecheck → if fail → coder fixes → re-check (max 3)
+    review_after_verify:
+      - reviewer finds critical → coder fixes → re-verify → re-review
+
+  stop_conditions:
+    - All verifications pass AND reviewer approves
+    - OR max feedback iterations exhausted (report partial success)
+
+  required_context:
+    - project/AGENTS.md
+    - project/conventions/*
+    - Affected source files
+    - Existing tests for affected modules

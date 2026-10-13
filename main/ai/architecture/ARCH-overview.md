@@ -14,7 +14,13 @@ main/
 │   └── utils/         # 工具：logger.py, python_finder.py
 ├── config/            # 应用配置 (default.json)
 ├── tests/             # 测试
-├── ai/                # AI skill & agent 配置
+├── ai/                # Agent 工程化体系
+│   ├── project/       # 项目上下文 (AGENTS.md + conventions + context)
+│   ├── agents/        # Agent 角色定义 (planner/coder/reviewer)
+│   ├── tools/         # 工具能力声明 (file/shell/search/vcs)
+│   ├── workflows/     # 开发场景模板 (feature/bugfix/refactor)
+│   ├── prompts/       # 提示词模板 (system + task)
+│   └── architecture/  # ADR & 架构文档
 ├── main.py            # 入口
 ├── start.bat/ps1      # 启动脚本
 ├── build.bat/ps1      # 打包脚本 (PyInstaller)
