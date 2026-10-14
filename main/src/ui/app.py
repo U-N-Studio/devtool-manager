@@ -1,5 +1,17 @@
 import os
+import sys
 import customtkinter as ctk
+
+# Windows 高 DPI 感知:在 Tk 创建前调用,避免位图拉伸发虚
+if sys.platform == "win32":
+    try:
+        import ctypes
+        ctypes.windll.shcore.SetProcessDpiAwareness(2)  # PER_MONITOR_AWARE
+    except Exception:
+        try:
+            ctypes.windll.user32.SetProcessDPIAware()
+        except Exception:
+            pass
 
 from src.viewmodel.observable import Observable
 from src.viewmodel.env_viewmodel import EnvViewModel
@@ -7,11 +19,14 @@ from src.viewmodel.packages_viewmodel import PackagesViewModel
 from src.viewmodel.tool_info_viewmodel import ToolInfoViewModel
 from src.viewmodel.commands_viewmodel import CommandsViewModel
 from src.viewmodel.executor_viewmodel import ExecutorViewModel
+from src.viewmodel.adb_viewmodel import AdbViewModel
 from src.ui.fonts import font as _font
 from src.ui.env_tab import EnvTab
 from src.ui.packages_tab import PackagesTab
 from src.ui.commands_tab import CommandsTab
 from src.ui.execute_tab import ExecuteTab
+from src.ui.adb_tab import AdbTab
+from src.ui.loading_overlay import LoadingOverlay
 from src.core.tools import TOOL_INFO_FUNCS
 
 
@@ -33,6 +48,7 @@ class DevToolManagerApp(ctk.CTk):
         self._tool_vm = ToolInfoViewModel()
         self._cmd_vm = CommandsViewModel()
         self._exec_vm = ExecutorViewModel()
+        self._adb_vm = AdbViewModel()
 
         self.grid_rowconfigure(0, weight=0)
         self.grid_rowconfigure(1, weight=0)
@@ -41,6 +57,7 @@ class DevToolManagerApp(ctk.CTk):
 
         self._build_header()
         self._build_body()
+        self._loading = LoadingOverlay(self)
         self._bind_viewmodels()
 
         self.after(100, self._on_refresh)
@@ -70,13 +87,77 @@ class DevToolManagerApp(ctk.CTk):
         self._cwd_label.grid(row=0, column=1, padx=(0, 16), pady=4, sticky="ew")
 
     def _build_body(self):
-        body = ctk.CTkTabview(self)
+        body = ctk.CTkFrame(self, fg_color="transparent")
         body.grid(row=2, column=0, sticky="nsew", padx=10, pady=(0, 10))
+        body.grid_columnconfigure(1, weight=1)
+        body.grid_rowconfigure(0, weight=1)
 
-        self._env_tab = EnvTab(body.add("Environment"), self._env_vm, self._tool_vm)
-        self._pkgs_tab = PackagesTab(body.add("Packages"), self._pkgs_vm)
-        self._cmd_tab = CommandsTab(body.add("Commands"), self._cmd_vm)
-        self._exec_tab = ExecuteTab(body.add("Execute"), self._exec_vm)
+        # 左侧竖排导航栏
+        sidebar = ctk.CTkFrame(body, width=140, corner_radius=6)
+        sidebar.grid(row=0, column=0, sticky="ns", padx=(0, 4))
+        sidebar.grid_propagate(False)
+
+        # 右侧内容容器
+        self._content_frame = ctk.CTkFrame(body, corner_radius=6)
+        self._content_frame.grid(row=0, column=1, sticky="nsew")
+        self._content_frame.grid_columnconfigure(0, weight=1)
+        self._content_frame.grid_rowconfigure(0, weight=1)
+
+        tabs = [
+            ("Environment", "环境变量"),
+            ("Packages", "包管理"),
+            ("Commands", "命令管理"),
+        ]
+        self._tab_buttons = {}
+        self._tab_frames = {}
+        for i, (key, label) in enumerate(tabs):
+            btn = ctk.CTkButton(sidebar, text=label, anchor="w", height=36,
+                                fg_color="transparent", hover_color=("gray80", "gray25"),
+                                font=_font(size=13),
+                                command=lambda k=key: self._switch_tab(k))
+            btn.grid(row=i, column=0, sticky="ew", padx=4, pady=(4, 0))
+            self._tab_buttons[key] = btn
+
+            frame = ctk.CTkFrame(self._content_frame, fg_color="transparent")
+            frame.grid(row=0, column=0, sticky="nsew", padx=0, pady=0)
+            frame.grid_columnconfigure(0, weight=1)
+            frame.grid_rowconfigure(0, weight=1)
+            frame.grid_remove()
+            self._tab_frames[key] = frame
+
+        self._env_tab = EnvTab(self._tab_frames["Environment"], self._env_vm, self._tool_vm)
+        self._pkgs_tab = PackagesTab(self._tab_frames["Packages"], self._pkgs_vm)
+
+        # 命令管理:内部用子标签整合命令详情 / 执行 / ADB
+        cmd_frame = self._tab_frames["Commands"]
+        # 收紧 CTkTabview 默认间距,消除顶部多余空白
+        ctk.CTkTabview._outer_spacing = 2
+        ctk.CTkTabview._outer_button_overhang = 2
+        ctk.CTkTabview._button_height = 24
+        cmd_sub = ctk.CTkTabview(cmd_frame)
+        cmd_sub.grid(row=0, column=0, sticky="nsew")
+        cmd_sub.grid_columnconfigure(0, weight=1)
+
+        self._cmd_tab = CommandsTab(cmd_sub.add("命令详情"), self._cmd_vm)
+        self._exec_tab = ExecuteTab(cmd_sub.add("执行"), self._exec_vm)
+        self._adb_tab = AdbTab(cmd_sub.add("ADB"), self._adb_vm)
+
+        self._current_tab = None
+        self._switch_tab("Environment")
+
+    def _switch_tab(self, key):
+        if self._current_tab == key:
+            return
+        if self._current_tab:
+            self._tab_frames[self._current_tab].grid_remove()
+            self._tab_buttons[self._current_tab].configure(
+                fg_color="transparent",
+                text_color=("black", "white"))
+        self._tab_frames[key].grid()
+        self._tab_buttons[key].configure(
+            fg_color=("gray70", "gray30"),
+            text_color="white")
+        self._current_tab = key
 
     def _bind_viewmodels(self):
         self._env_vm.is_loading.on_change(self._on_loading_changed)
@@ -84,6 +165,21 @@ class DevToolManagerApp(ctk.CTk):
         self._pkgs_tab.bind_viewmodels()
         self._cmd_tab.bind_viewmodels()
         self._exec_tab.bind_viewmodels()
+        self._adb_tab.bind_viewmodels()
+
+        # 所有 viewmodel 的 is_loading 驱动全局进度框
+        self._env_vm.is_loading.on_change(lambda v: self._on_global_loading("环境", v))
+        self._pkgs_vm.is_loading.on_change(lambda v: self._on_global_loading("包管理", v))
+        self._tool_vm.is_loading.on_change(lambda v: self._on_global_loading("工具信息", v))
+        self._cmd_vm.is_loading.on_change(lambda v: self._on_global_loading("命令", v))
+        self._exec_vm.is_running.on_change(lambda v: self._on_global_loading("执行", v))
+        self._adb_vm.is_loading.on_change(lambda v: self._on_global_loading("ADB", v))
+
+    def _on_global_loading(self, tag, loading):
+        if loading:
+            self._loading.show(f"{tag} 加载中...")
+        else:
+            self._loading.hide()
 
     def _on_loading_changed(self, loading):
         state = "disabled" if loading else "normal"

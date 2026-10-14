@@ -12,9 +12,12 @@ class EnvTab:
         self._env_data = {}
 
         parent.grid_columnconfigure(0, weight=1)
+        parent.grid_rowconfigure(0, weight=0)
+        parent.grid_rowconfigure(1, weight=0)
+        parent.grid_rowconfigure(2, weight=1)
 
         top_bar = ctk.CTkFrame(parent, fg_color="transparent")
-        top_bar.grid(row=0, column=0, sticky="ew", padx=10, pady=(6, 2))
+        top_bar.grid(row=0, column=0, sticky="ew", padx=10, pady=(2, 2))
         top_bar.grid_columnconfigure(1, weight=1)
 
         ctk.CTkLabel(top_bar, text="Category:", font=_font(size=12)).grid(row=0, column=0, padx=(0, 6))
@@ -42,7 +45,7 @@ class EnvTab:
         self._var_list = ctk.CTkScrollableFrame(parent)
         self._var_list.grid(row=2, column=0, sticky="nsew", padx=10, pady=(0, 6))
         self._var_list.grid_columnconfigure(0, weight=1)
-        parent.grid_rowconfigure(2, weight=1)
+        self._var_list.configure(fg_color="transparent")
 
     @property
     def cat_combobox(self):

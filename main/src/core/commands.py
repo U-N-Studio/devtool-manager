@@ -1,5 +1,6 @@
 import sys
 import os
+import re
 import subprocess
 import shutil
 
@@ -58,9 +59,15 @@ def clear_cache():
 
 def _run_cmd(args, timeout=5):
     try:
+        # Windows 上 npm/pnpm/yarn 等是 .cmd 脚本,需要 shell=True 才能执行
+        use_shell = False
+        if sys.platform == "win32" and args:
+            exe = shutil.which(args[0])
+            if exe and exe.lower().endswith((".cmd", ".bat")):
+                use_shell = True
         result = subprocess.run(
             args, capture_output=True, text=True, timeout=timeout,
-            creationflags=_SUBPROCESS_FLAGS,
+            creationflags=_SUBPROCESS_FLAGS, shell=use_shell,
         )
         output = (result.stdout or "") + (result.stderr or "")
         return output.strip()
@@ -68,7 +75,7 @@ def _run_cmd(args, timeout=5):
         return None
 
 
-def _extract_params(help_text, max_items=15):
+def _extract_params(help_text, max_items=30):
     if not help_text:
         return []
     params = []
@@ -82,12 +89,92 @@ def _extract_params(help_text, max_items=15):
                 if token not in seen:
                     seen.add(token)
                     desc = " ".join(parts[1:]) if len(parts) > 1 else ""
-                    if len(desc) > 60:
-                        desc = desc[:57] + "..."
+                    if len(desc) > 80:
+                        desc = desc[:77] + "..."
                     params.append({"flag": token, "desc": desc})
                     if len(params) >= max_items:
                         break
     return params
+
+
+def _extract_subcommands(help_text, max_items=50):
+    """从 help 文本中提取子命令列表。
+
+    支持多种格式:
+    - git:  "   clone             Clone a repository..." (缩进命令名 + 描述)
+    - pip:  "  install                     Install packages."
+    - npm:  "    access, adduser, audit, ..." (逗号分隔)
+    - adb:  " devices [-l]             list connected devices"
+    """
+    if not help_text:
+        return []
+    subs = []
+    seen = set()
+
+    # 模式 1: 缩进行中的命令名 + 描述(git/pip/adb 风格)
+    # 要求:行有前导缩进,token 后有较多空格(列对齐)分隔描述
+    for line in help_text.splitlines():
+        if not line.startswith(" ") and not line.startswith("\t"):
+            continue
+        stripped = line.strip()
+        if not stripped or stripped.startswith("-") or stripped.startswith("/"):
+            continue
+        if stripped.endswith(":"):
+            continue
+        if "see also" in stripped.lower():
+            continue
+        # 要求 token 和描述之间有 >= 2 个空格(列对齐),排除 "npm install  ..." 这种
+        m = re.match(r"^(\S+)\s{2,}(.+)$", stripped)
+        if not m:
+            continue
+        token = m.group(1).rstrip(",")
+        if not _is_subcommand_token(token):
+            continue
+        desc = m.group(2).strip()
+        if len(desc) > 80:
+            desc = desc[:77] + "..."
+        if token not in seen:
+            seen.add(token)
+            subs.append({"name": token, "desc": desc})
+            if len(subs) >= max_items:
+                break
+
+    # 模式 2: 逗号分隔的命令列表(npm "All commands:" 风格)
+    if len(subs) < 3:
+        in_cmd_list = False
+        for line in help_text.splitlines():
+            stripped = line.strip()
+            if not stripped:
+                if in_cmd_list and subs:
+                    break
+                continue
+            if "all commands" in stripped.lower():
+                in_cmd_list = True
+                continue
+            if in_cmd_list and "," in stripped:
+                tokens = [t.strip() for t in stripped.split(",")]
+                if all(_is_subcommand_token(t) for t in tokens if t):
+                    for token in tokens:
+                        token = token.strip()
+                        if token and token not in seen and _is_subcommand_token(token):
+                            seen.add(token)
+                            subs.append({"name": token, "desc": ""})
+                            if len(subs) >= max_items:
+                                break
+                    if len(subs) >= max_items:
+                        break
+
+    return subs
+
+
+def _is_subcommand_token(token):
+    """判断一个 token 是否像子命令名(纯小写字母/数字/连字符)"""
+    if not token or len(token) > 40:
+        return False
+    if token.startswith("-"):
+        return False
+    # 子命令必须全小写,只含字母/数字/连字符
+    return token.islower() and all(c.isalnum() or c == "-" for c in token) and token[0].isalpha()
 
 
 def _resolve_env_values(env_var_names):
@@ -111,17 +198,18 @@ def load_command_detail(name: str) -> dict:
     installed = path is not None
 
     version = ""
+    help_text = ""
     if installed and cmd_def.get("version_args"):
         output = _run_cmd([name] + cmd_def["version_args"])
         if output:
             first_line = output.splitlines()[0] if output.splitlines() else output
             version = first_line.strip()
 
-    params = []
     if installed and cmd_def.get("help_args"):
-        output = _run_cmd([name] + cmd_def["help_args"], timeout=3)
-        if output:
-            params = _extract_params(output)
+        help_text = _run_cmd([name] + cmd_def["help_args"], timeout=5) or ""
+
+    params = _extract_params(help_text) if help_text else []
+    subcommands = _extract_subcommands(help_text) if help_text else []
 
     env_vars = _resolve_env_values(cmd_def.get("env_vars", []))
 
@@ -132,6 +220,7 @@ def load_command_detail(name: str) -> dict:
         "path": path or "",
         "description": cmd_def.get("description", ""),
         "params": params,
+        "subcommands": subcommands,
         "env_vars": env_vars,
         "config_sections": [],
     }

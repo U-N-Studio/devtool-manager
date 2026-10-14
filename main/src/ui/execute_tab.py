@@ -1,7 +1,7 @@
 import os
 import customtkinter as ctk
 
-from src.ui.fonts import font as _font
+from src.ui.fonts import font as _font, mono as _mono
 
 
 class ExecuteTab:
@@ -11,10 +11,13 @@ class ExecuteTab:
         self._history_index = -1
 
         parent.grid_columnconfigure(0, weight=1)
+        parent.grid_rowconfigure(0, weight=0)
+        parent.grid_rowconfigure(1, weight=0)
         parent.grid_rowconfigure(2, weight=1)
+        parent.grid_rowconfigure(3, weight=0)
 
         cwd_bar = ctk.CTkFrame(parent, fg_color="transparent")
-        cwd_bar.grid(row=0, column=0, sticky="ew", padx=10, pady=(6, 4))
+        cwd_bar.grid(row=0, column=0, sticky="ew", padx=10, pady=(2, 2))
         cwd_bar.grid_columnconfigure(1, weight=1)
 
         ctk.CTkLabel(cwd_bar, text="目录:", font=_font(size=12)).grid(row=0, column=0, padx=(0, 4))
@@ -50,7 +53,7 @@ class ExecuteTab:
                                          command=self._on_clear)
         self._btn_clear.grid(row=0, column=4)
 
-        self._output_text = ctk.CTkTextbox(parent, font=_font(family="Courier", size=12), state="disabled")
+        self._output_text = ctk.CTkTextbox(parent, font=_mono(size=12), state="disabled")
         self._output_text.grid(row=2, column=0, sticky="nsew", padx=10, pady=(0, 6))
 
         self._status_bar = ctk.CTkFrame(parent, fg_color="transparent", height=24)

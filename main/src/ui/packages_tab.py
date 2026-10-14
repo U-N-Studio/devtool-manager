@@ -11,10 +11,11 @@ class PackagesTab:
         self._pkg_page_size = 50
 
         parent.grid_columnconfigure(0, weight=1)
+        parent.grid_rowconfigure(0, weight=0)
         parent.grid_rowconfigure(1, weight=1)
 
         top_bar = ctk.CTkFrame(parent, fg_color="transparent")
-        top_bar.grid(row=0, column=0, sticky="ew", padx=10, pady=(6, 4))
+        top_bar.grid(row=0, column=0, sticky="ew", padx=10, pady=(2, 2))
         top_bar.grid_columnconfigure(7, weight=1)
 
         ctk.CTkLabel(top_bar, text="Function:", font=_font(size=12)).grid(row=0, column=0, padx=(0, 4))
@@ -53,6 +54,7 @@ class PackagesTab:
         self._pkg_detail_list = ctk.CTkScrollableFrame(parent)
         self._pkg_detail_list.grid(row=1, column=0, sticky="nsew", padx=10, pady=(0, 6))
         self._pkg_detail_list.grid_columnconfigure(0, weight=1)
+        self._pkg_detail_list.configure(fg_color="transparent")
 
     @property
     def btn_install(self):

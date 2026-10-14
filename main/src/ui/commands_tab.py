@@ -1,6 +1,6 @@
 import customtkinter as ctk
 
-from src.ui.fonts import font as _font
+from src.ui.fonts import font as _font, mono as _mono
 from src.core.config_glossary import get_description
 
 
@@ -9,10 +9,13 @@ class CommandsTab:
         self._cmd_vm = cmd_vm
 
         parent.grid_columnconfigure(0, weight=1)
+        parent.grid_rowconfigure(0, weight=0)
+        parent.grid_rowconfigure(1, weight=0)
         parent.grid_rowconfigure(2, weight=1)
 
+        # --- 顶部选择栏 ---
         top_bar = ctk.CTkFrame(parent, fg_color="transparent")
-        top_bar.grid(row=0, column=0, sticky="ew", padx=10, pady=(6, 4))
+        top_bar.grid(row=0, column=0, sticky="ew", padx=10, pady=(2, 2))
         top_bar.grid_columnconfigure(1, weight=1)
 
         ctk.CTkLabel(top_bar, text="命令:", font=_font(size=12)).grid(row=0, column=0, padx=(0, 6))
@@ -26,12 +29,14 @@ class CommandsTab:
         self._btn_cmd_refresh = ctk.CTkButton(top_bar, text="刷新", width=80, height=28, command=self._on_cmd_refresh)
         self._btn_cmd_refresh.grid(row=0, column=3, padx=(8, 0))
 
-        self._cmd_msg_label = ctk.CTkLabel(top_bar, text="", font=_font(size=11), anchor="w")
+        self._cmd_msg_label = ctk.CTkLabel(top_bar, text="", font=_font(size=11), anchor="w", text_color="#AAAAAA")
         self._cmd_msg_label.grid(row=0, column=4, padx=(8, 0), sticky="w")
 
+        # --- 内容区 ---
         self._cmd_detail_frame = ctk.CTkScrollableFrame(parent)
         self._cmd_detail_frame.grid(row=2, column=0, sticky="nsew", padx=10, pady=(0, 6))
         self._cmd_detail_frame.grid_columnconfigure(0, weight=1)
+        self._cmd_detail_frame.configure(fg_color="transparent")
 
     @property
     def btn_refresh(self):
@@ -80,97 +85,141 @@ class CommandsTab:
         f.grid_columnconfigure(0, weight=1)
 
         row = 0
+        # --- 标题区 ---
         ctk.CTkLabel(f, text=cmd["name"], font=_font(size=20, weight="bold")).grid(
             row=row, column=0, padx=8, pady=(8, 2), sticky="w")
         row += 1
 
-        ctk.CTkLabel(f, text=cmd.get("description", ""), font=_font(size=12),
-                     text_color="#AAAAAA").grid(row=row, column=0, padx=8, pady=0, sticky="w")
-        row += 1
+        if cmd.get("description"):
+            ctk.CTkLabel(f, text=cmd["description"], font=_font(size=12),
+                         text_color="#AAAAAA").grid(row=row, column=0, padx=8, pady=0, sticky="w")
+            row += 1
 
+        # 状态徽章
         installed = cmd.get("installed", False)
         status_text = "已安装" if installed else "未安装"
         status_color = "#4CAF50" if installed else "#FF9800"
-        ctk.CTkLabel(f, text=status_text, font=_font(size=12, weight="bold"),
-                     text_color=status_color).grid(row=row, column=0, padx=8, pady=(4, 8), sticky="w")
+        ctk.CTkLabel(f, text=f"  {status_text}  ", fg_color=status_color, corner_radius=4,
+                     font=_font(size=11, weight="bold"), text_color="white").grid(
+            row=row, column=0, padx=8, pady=(4, 8), sticky="w")
         row += 1
 
+        # --- 基本信息 ---
+        basic_fields = [
+            ("版本", cmd.get("version", "") or "N/A"),
+            ("路径", cmd.get("path", "") or "N/A"),
+        ]
+        row = self._render_info_card(f, row, "基本信息", basic_fields)
+
+        # --- 子命令 ---
+        subcommands = cmd.get("subcommands", [])
+        if subcommands:
+            row = self._render_subcommands(f, row, subcommands)
+
+        # --- 参数列表 ---
+        params = cmd.get("params", [])
+        if params:
+            row = self._render_params(f, row, params)
+
+        # --- 环境变量 ---
+        env_vars = cmd.get("env_vars", [])
+        if env_vars:
+            row = self._render_env_vars(f, row, env_vars)
+
+        # --- 配置信息 ---
+        config_sections = cmd.get("config_sections", [])
+        if config_sections:
+            for section in config_sections:
+                row = self._render_config_section(f, row, section)
+
+    def _render_info_card(self, f, row, title, fields):
         card = ctk.CTkFrame(f, corner_radius=8)
         card.grid(row=row, column=0, padx=8, pady=4, sticky="ew")
         card.grid_columnconfigure(1, weight=1)
         inner = 0
-        fields = [
-            ("版本", cmd.get("version", "") or "N/A"),
-            ("路径", cmd.get("path", "") or "N/A"),
-        ]
+        ctk.CTkLabel(card, text=title, font=_font(size=13, weight="bold"),
+                     text_color="#6BA3D6").grid(row=inner, column=0, columnspan=2, padx=12, pady=(8, 4), sticky="w")
+        inner += 1
         for label, value in fields:
             ctk.CTkLabel(card, text=label + ":", anchor="w", font=_font(size=12)).grid(
                 row=inner, column=0, padx=(12, 4), pady=4, sticky="w")
-            ctk.CTkLabel(card, text=value, anchor="w", font=_font(size=12), wraplength=600).grid(
-                row=inner, column=1, padx=(0, 12), pady=4, sticky="ew")
+            ctk.CTkLabel(card, text=value, anchor="w", font=_mono(size=11),
+                         wraplength=600).grid(row=inner, column=1, padx=(0, 12), pady=4, sticky="ew")
             inner += 1
-        row += 1
+        return row + 1
 
-        env_vars = cmd.get("env_vars", [])
-        if env_vars:
-            card = ctk.CTkFrame(f, corner_radius=8)
-            card.grid(row=row, column=0, padx=8, pady=4, sticky="ew")
-            card.grid_columnconfigure(1, weight=1)
-            inner = 0
-            ctk.CTkLabel(card, text="环境变量", font=_font(size=13, weight="bold"),
-                         text_color="#6BA3D6").grid(row=inner, column=0, columnspan=2, padx=12, pady=(8, 4), sticky="w")
+    def _render_subcommands(self, f, row, subcommands):
+        card = ctk.CTkFrame(f, corner_radius=8)
+        card.grid(row=row, column=0, padx=8, pady=4, sticky="ew")
+        card.grid_columnconfigure(1, weight=1)
+        inner = 0
+        ctk.CTkLabel(card, text=f"子命令 ({len(subcommands)})", font=_font(size=13, weight="bold"),
+                     text_color="#6BA3D6").grid(row=inner, column=0, columnspan=2, padx=12, pady=(8, 4), sticky="w")
+        inner += 1
+        for sc in subcommands:
+            ctk.CTkLabel(card, text=sc["name"], anchor="w", font=_mono(size=12),
+                         width=200).grid(row=inner, column=0, padx=(12, 4), pady=2, sticky="w")
+            ctk.CTkLabel(card, text=sc.get("desc", ""), anchor="w", font=_font(size=11),
+                         text_color="#AAAAAA", wraplength=500).grid(row=inner, column=1, padx=(0, 12), pady=2, sticky="ew")
             inner += 1
-            for ev in env_vars:
-                color = "#4CAF50" if ev["set"] else "#888888"
-                ctk.CTkLabel(card, text=ev["name"], anchor="w", font=_font(size=12),
-                             width=200).grid(row=inner, column=0, padx=(12, 4), pady=2, sticky="w")
-                val = ev["value"] if ev["set"] else "(未设置)"
-                ctk.CTkLabel(card, text=val, anchor="w", font=_font(size=12),
-                             text_color=color, wraplength=500).grid(row=inner, column=1, padx=(0, 12), pady=2, sticky="ew")
-                inner += 1
-            row += 1
+        return row + 1
 
-        params = cmd.get("params", [])
-        if params:
-            card = ctk.CTkFrame(f, corner_radius=8)
-            card.grid(row=row, column=0, padx=8, pady=4, sticky="ew")
-            card.grid_columnconfigure(1, weight=1)
-            inner = 0
-            ctk.CTkLabel(card, text="参数列表", font=_font(size=13, weight="bold"),
-                         text_color="#6BA3D6").grid(row=inner, column=0, columnspan=2, padx=12, pady=(8, 4), sticky="w")
+    def _render_params(self, f, row, params):
+        card = ctk.CTkFrame(f, corner_radius=8)
+        card.grid(row=row, column=0, padx=8, pady=4, sticky="ew")
+        card.grid_columnconfigure(1, weight=1)
+        inner = 0
+        ctk.CTkLabel(card, text=f"参数列表 ({len(params)})", font=_font(size=13, weight="bold"),
+                     text_color="#6BA3D6").grid(row=inner, column=0, columnspan=2, padx=12, pady=(8, 4), sticky="w")
+        inner += 1
+        for p in params:
+            ctk.CTkLabel(card, text=p["flag"], anchor="w", font=_mono(size=12),
+                         width=200).grid(row=inner, column=0, padx=(12, 4), pady=2, sticky="w")
+            ctk.CTkLabel(card, text=p.get("desc", ""), anchor="w", font=_font(size=11),
+                         text_color="#AAAAAA", wraplength=500).grid(row=inner, column=1, padx=(0, 12), pady=2, sticky="ew")
             inner += 1
-            for p in params:
-                ctk.CTkLabel(card, text=p["flag"], anchor="w", font=_font(family="Courier", size=12),
-                             width=200).grid(row=inner, column=0, padx=(12, 4), pady=2, sticky="w")
-                ctk.CTkLabel(card, text=p.get("desc", ""), anchor="w", font=_font(size=12),
-                             text_color="#AAAAAA", wraplength=500).grid(row=inner, column=1, padx=(0, 12), pady=2, sticky="ew")
-                inner += 1
-            row += 1
+        return row + 1
 
-        config_sections = cmd.get("config_sections", [])
-        if config_sections:
-            for section in config_sections:
-                level = section.get("level", "")
-                card = ctk.CTkFrame(f, corner_radius=8)
-                card.grid(row=row, column=0, padx=8, pady=4, sticky="ew")
-                card.grid_columnconfigure(1, weight=1)
-                inner = 0
-                ctk.CTkLabel(card, text=f"配置 - {level}", font=_font(size=13, weight="bold"),
-                             text_color="#6BA3D6").grid(row=inner, column=0, columnspan=2, padx=12, pady=(8, 4), sticky="w")
+    def _render_env_vars(self, f, row, env_vars):
+        card = ctk.CTkFrame(f, corner_radius=8)
+        card.grid(row=row, column=0, padx=8, pady=4, sticky="ew")
+        card.grid_columnconfigure(1, weight=1)
+        inner = 0
+        ctk.CTkLabel(card, text="环境变量", font=_font(size=13, weight="bold"),
+                     text_color="#6BA3D6").grid(row=inner, column=0, columnspan=2, padx=12, pady=(8, 4), sticky="w")
+        inner += 1
+        for ev in env_vars:
+            color = "#4CAF50" if ev["set"] else "#888888"
+            ctk.CTkLabel(card, text=ev["name"], anchor="w", font=_mono(size=12),
+                         width=200).grid(row=inner, column=0, padx=(12, 4), pady=2, sticky="w")
+            val = ev["value"] if ev["set"] else "(未设置)"
+            ctk.CTkLabel(card, text=val, anchor="w", font=_font(size=12),
+                         text_color=color, wraplength=500).grid(row=inner, column=1, padx=(0, 12), pady=2, sticky="ew")
+            inner += 1
+        return row + 1
+
+    def _render_config_section(self, f, row, section):
+        level = section.get("level", "")
+        card = ctk.CTkFrame(f, corner_radius=8)
+        card.grid(row=row, column=0, padx=8, pady=4, sticky="ew")
+        card.grid_columnconfigure(1, weight=1)
+        inner = 0
+        ctk.CTkLabel(card, text=f"配置 - {level}", font=_font(size=13, weight="bold"),
+                     text_color="#6BA3D6").grid(row=inner, column=0, columnspan=2, padx=12, pady=(8, 4), sticky="w")
+        inner += 1
+        for item in section.get("items", []):
+            key = item["key"]
+            ctk.CTkLabel(card, text=key, anchor="w", font=_mono(size=12),
+                         width=200).grid(row=inner, column=0, padx=(12, 4), pady=1, sticky="w")
+            val = item.get("value", "")
+            if len(val) > 80:
+                val = val[:77] + "..."
+            ctk.CTkLabel(card, text=val, anchor="w", font=_font(size=12),
+                         text_color="#AAAAAA", wraplength=500).grid(row=inner, column=1, padx=(0, 12), pady=1, sticky="ew")
+            inner += 1
+            desc = get_description(key)
+            if desc:
+                ctk.CTkLabel(card, text=desc, anchor="w", font=_font(size=11),
+                             text_color="#666666", wraplength=500).grid(row=inner, column=1, padx=(0, 12), pady=0, sticky="ew")
                 inner += 1
-                for item in section.get("items", []):
-                    key = item["key"]
-                    ctk.CTkLabel(card, text=key, anchor="w", font=_font(size=12),
-                                 width=200).grid(row=inner, column=0, padx=(12, 4), pady=1, sticky="w")
-                    val = item.get("value", "")
-                    if len(val) > 80:
-                        val = val[:77] + "..."
-                    ctk.CTkLabel(card, text=val, anchor="w", font=_font(size=12),
-                                 text_color="#AAAAAA", wraplength=500).grid(row=inner, column=1, padx=(0, 12), pady=1, sticky="ew")
-                    inner += 1
-                    desc = get_description(key)
-                    if desc:
-                        ctk.CTkLabel(card, text=desc, anchor="w", font=_font(size=11),
-                                     text_color="#666666", wraplength=500).grid(row=inner, column=1, padx=(0, 12), pady=0, sticky="ew")
-                        inner += 1
-                row += 1
+        return row + 1
