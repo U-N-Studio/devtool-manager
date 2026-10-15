@@ -1,7 +1,7 @@
 """DevTool Manager 应用主窗口。
 
-构建标题栏、当前路径栏、左侧导航与右侧内容区,初始化各标签页及其
-ViewModel,并将所有 ViewModel 的加载状态汇总到全局进度遮罩。
+网页式左右布局:左侧全高导航栏,右侧主区(顶部路径栏 + 内容区)。
+初始化各标签页及其 ViewModel,并将所有 ViewModel 的加载状态汇总到全局进度遮罩。
 """
 
 import os
@@ -53,56 +53,48 @@ class DevToolManagerApp(ctk.CTk):
         self._cmd_vm = CommandsViewModel()
         self._exec_vm = ExecutorViewModel()
 
-        self.grid_rowconfigure(0, weight=0)
-        self.grid_rowconfigure(1, weight=0)
-        self.grid_rowconfigure(2, weight=1)
-        self.grid_columnconfigure(0, weight=1)
+        # 网页式左右布局:左侧全高导航栏 + 右侧主区(顶栏 + 内容)
+        self.grid_rowconfigure(0, weight=1)
+        self.grid_columnconfigure(0, weight=0)
+        self.grid_columnconfigure(1, weight=1)
 
-        self._build_header()
         self._build_body()
         self._loading = LoadingOverlay(self)
         self._bind_viewmodels()
 
         self.after(100, self._on_refresh)
 
-    def _build_header(self):
-        header = ctk.CTkFrame(self, height=48, corner_radius=0)
-        header.grid(row=0, column=0, sticky="ew")
-        header.grid_columnconfigure(1, weight=1)
+    def _build_body(self):
+        # --- 左侧全高导航栏 ---
+        sidebar = ctk.CTkFrame(self, width=160, corner_radius=0,
+                               fg_color=("gray88", "gray18"))
+        sidebar.grid(row=0, column=0, sticky="nsew")
+        sidebar.grid_propagate(False)
+        sidebar.grid_columnconfigure(0, weight=1)
 
-        ctk.CTkLabel(header, text="DevTool Manager", font=_font(size=20, weight="bold")).grid(
-            row=0, column=0, padx=(16, 8), pady=10
-        )
+        # --- 右侧主区:顶栏 + 内容 ---
+        main = ctk.CTkFrame(self, fg_color="transparent")
+        main.grid(row=0, column=1, sticky="nsew")
+        main.grid_rowconfigure(0, weight=0)
+        main.grid_rowconfigure(1, weight=1)
+        main.grid_columnconfigure(0, weight=1)
 
-        self._btn_refresh = ctk.CTkButton(header, text="刷新", width=90, command=self._on_refresh)
-        self._btn_refresh.grid(row=0, column=1, sticky="e", padx=(0, 16), pady=10)
-
-        cwd_bar = ctk.CTkFrame(self, height=28, corner_radius=0,
-                                fg_color="#2B2B2B" if ctk.get_appearance_mode() == "Dark" else "#E8E8E8")
-        cwd_bar.grid(row=1, column=0, sticky="ew")
+        # 顶栏:当前路径
+        cwd_bar = ctk.CTkFrame(main, height=28, corner_radius=0,
+                               fg_color="#2B2B2B" if ctk.get_appearance_mode() == "Dark" else "#E8E8E8")
+        cwd_bar.grid(row=0, column=0, sticky="ew")
         cwd_bar.grid_columnconfigure(1, weight=1)
 
         ctk.CTkLabel(cwd_bar, text="当前路径:", font=_font(size=11), anchor="w").grid(
             row=0, column=0, padx=(16, 4), pady=4, sticky="w"
         )
         self._cwd_label = ctk.CTkLabel(cwd_bar, text=os.getcwd(), font=_font(size=11), anchor="w",
-                                        text_color="#AAAAAA")
+                                       text_color="#AAAAAA")
         self._cwd_label.grid(row=0, column=1, padx=(0, 16), pady=4, sticky="ew")
 
-    def _build_body(self):
-        body = ctk.CTkFrame(self, fg_color="transparent")
-        body.grid(row=2, column=0, sticky="nsew", padx=10, pady=(0, 10))
-        body.grid_columnconfigure(1, weight=1)
-        body.grid_rowconfigure(0, weight=1)
-
-        # 左侧竖排导航栏
-        sidebar = ctk.CTkFrame(body, width=140, corner_radius=6)
-        sidebar.grid(row=0, column=0, sticky="ns", padx=(0, 4))
-        sidebar.grid_propagate(False)
-
-        # 右侧内容容器
-        self._content_frame = ctk.CTkFrame(body, corner_radius=6)
-        self._content_frame.grid(row=0, column=1, sticky="nsew")
+        # 内容容器
+        self._content_frame = ctk.CTkFrame(main, corner_radius=6)
+        self._content_frame.grid(row=1, column=0, sticky="nsew", padx=10, pady=(2, 10))
         self._content_frame.grid_columnconfigure(0, weight=1)
         self._content_frame.grid_rowconfigure(0, weight=1)
 
@@ -131,7 +123,7 @@ class DevToolManagerApp(ctk.CTk):
         self._env_tab = EnvTab(self._tab_frames["Environment"], self._env_vm, self._tool_vm)
         self._pkgs_tab = PackagesTab(self._tab_frames["Packages"], self._pkgs_vm)
 
-        # 命令管理:内部用子标签整合命令详情 / 执行 / ADB
+        # 命令管理:内部用子标签整合命令详情 / 执行
         cmd_frame = self._tab_frames["Commands"]
         # 收紧 CTkTabview 默认间距,消除顶部多余空白
         ctk.CTkTabview._outer_spacing = 2
@@ -183,7 +175,6 @@ class DevToolManagerApp(ctk.CTk):
 
     def _on_loading_changed(self, loading):
         state = "disabled" if loading else "normal"
-        self._btn_refresh.configure(state=state)
         self._env_tab.btn_add.configure(state=state)
 
     def _on_refresh(self):
