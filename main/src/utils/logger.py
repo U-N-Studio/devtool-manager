@@ -1,3 +1,9 @@
+"""统一日志器。
+
+提供带时间戳的 StreamHandler,供各模块通过 ``get_logger(name)`` 获取
+共享日志器实例。
+"""
+
 import logging
 
 

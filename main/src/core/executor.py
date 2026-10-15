@@ -1,3 +1,9 @@
+"""子进程执行器。
+
+以独立线程运行 shell 命令,实时流式回传 stdout/stderr,支持终止进程
+与自定义环境变量,供执行标签页使用。
+"""
+
 import sys
 import os
 import subprocess

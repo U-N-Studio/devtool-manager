@@ -1,3 +1,9 @@
+"""配置项术语表。
+
+维护开发工具常见配置键(如 registry / GOROOT / JAVA_HOME)的中文释义,
+供命令详情页在展示配置项时附加说明。
+"""
+
 _GLOSSARY = {
     "registry": "包下载源地址",
     "prefix": "全局安装目录",

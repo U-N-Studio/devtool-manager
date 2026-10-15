@@ -1,3 +1,9 @@
+"""字体工具。
+
+按平台选择中文字体与等宽字体,并提供统一缩放系数,供 UI 各控件
+通过 ``font()`` / ``mono()`` 获取一致的字体三元组。
+"""
+
 import sys
 
 _CJK_FONT = "Microsoft YaHei UI" if sys.platform == "win32" else "Noto Sans CJK SC"

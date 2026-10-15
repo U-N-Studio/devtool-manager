@@ -1,3 +1,9 @@
+"""环境变量管理核心。
+
+按语言/平台分类读取系统与用户环境变量(含注册表源),支持变量的增删改与
+PATH 条目管理,修改后广播 WM_SETTINGCHANGE 使新进程感知变更。
+"""
+
 import sys
 import os
 import subprocess

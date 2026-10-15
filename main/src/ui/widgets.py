@@ -1,3 +1,9 @@
+"""环境标签页可复用控件。
+
+包含环境变量编辑对话框、变量行(带来源徽章)与工具信息卡片,
+供 :mod:`src.ui.env_tab` 组装。
+"""
+
 import customtkinter as ctk
 
 from src.ui.fonts import font as _font

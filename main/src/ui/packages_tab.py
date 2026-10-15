@@ -1,3 +1,9 @@
+"""包管理标签页。
+
+按功能/语言/安装状态过滤包列表,分页渲染(每页 50 条),
+支持安装、卸载与确认操作。
+"""
+
 import customtkinter as ctk
 
 from src.ui.fonts import font as _font
@@ -19,30 +25,30 @@ class PackagesTab:
         top_bar.grid_columnconfigure(7, weight=1)
 
         ctk.CTkLabel(top_bar, text="Function:", font=_font(size=12)).grid(row=0, column=0, padx=(0, 4))
-        func_values = ["All"] + pkgs_vm.func_tags
+        func_values = ["None", "All"] + pkgs_vm.func_tags
         self._pkg_func_combobox = ctk.CTkComboBox(
             top_bar, values=func_values, command=self._on_pkg_func_filter,
             height=28, width=130,
         )
-        self._pkg_func_combobox.set("All")
+        self._pkg_func_combobox.set("None")
         self._pkg_func_combobox.grid(row=0, column=1)
 
         ctk.CTkLabel(top_bar, text="Language:", font=_font(size=12)).grid(row=0, column=2, padx=(8, 4))
-        lang_values = ["All"] + pkgs_vm.lang_tags
+        lang_values = ["None", "All"] + pkgs_vm.lang_tags
         self._pkg_lang_combobox = ctk.CTkComboBox(
             top_bar, values=lang_values, command=self._on_pkg_lang_filter,
             height=28, width=100,
         )
-        self._pkg_lang_combobox.set("All")
+        self._pkg_lang_combobox.set("None")
         self._pkg_lang_combobox.grid(row=0, column=3)
 
         ctk.CTkLabel(top_bar, text="Status:", font=_font(size=12)).grid(row=0, column=4, padx=(8, 4))
-        install_values = ["All"] + pkgs_vm.install_tags
+        install_values = ["None", "All"] + pkgs_vm.install_tags
         self._pkg_install_combobox = ctk.CTkComboBox(
             top_bar, values=install_values, command=self._on_pkg_install_filter,
             height=28, width=110,
         )
-        self._pkg_install_combobox.set("All")
+        self._pkg_install_combobox.set("None")
         self._pkg_install_combobox.grid(row=0, column=5)
 
         self._btn_pkg_install = ctk.CTkButton(top_bar, text="Install", width=80, height=28, command=self._on_install_pkg)
@@ -70,22 +76,37 @@ class PackagesTab:
         self._btn_pkg_install.configure(state=state)
 
     def _on_pkg_func_filter(self, value: str):
+        if value == "None" or self._pkg_lang_combobox.get() == "None" or self._pkg_install_combobox.get() == "None":
+            self._clear_pkg_list()
+            return
         func = "" if value == "All" else value
         lang = "" if self._pkg_lang_combobox.get() == "All" else self._pkg_lang_combobox.get()
         install = "" if self._pkg_install_combobox.get() == "All" else self._pkg_install_combobox.get()
         self._pkgs_vm.set_filters(func, lang, install)
 
     def _on_pkg_lang_filter(self, value: str):
+        if value == "None" or self._pkg_func_combobox.get() == "None" or self._pkg_install_combobox.get() == "None":
+            self._clear_pkg_list()
+            return
         lang = "" if value == "All" else value
         func = "" if self._pkg_func_combobox.get() == "All" else self._pkg_func_combobox.get()
         install = "" if self._pkg_install_combobox.get() == "All" else self._pkg_install_combobox.get()
         self._pkgs_vm.set_filters(func, lang, install)
 
     def _on_pkg_install_filter(self, value: str):
+        if value == "None" or self._pkg_func_combobox.get() == "None" or self._pkg_lang_combobox.get() == "None":
+            self._clear_pkg_list()
+            return
         install = "" if value == "All" else value
         func = "" if self._pkg_func_combobox.get() == "All" else self._pkg_func_combobox.get()
         lang = "" if self._pkg_lang_combobox.get() == "All" else self._pkg_lang_combobox.get()
         self._pkgs_vm.set_filters(func, lang, install)
+
+    def _clear_pkg_list(self):
+        self._pkg_all_items = []
+        self._pkg_page = 0
+        for child in self._pkg_detail_list.winfo_children():
+            child.destroy()
 
     def _update_pkg_list(self, items: list):
         self._pkg_all_items = items

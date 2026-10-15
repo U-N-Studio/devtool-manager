@@ -1,3 +1,9 @@
+"""包管理视图模型。
+
+按功能/语言/安装状态过滤 :mod:`src.core.packages` 的分类结果,并在
+安装/卸载后自动重载列表,供包管理标签页绑定。
+"""
+
 import threading
 
 from src.viewmodel.observable import Observable

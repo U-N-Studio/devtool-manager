@@ -1,3 +1,9 @@
+"""DevTool Manager 应用主窗口。
+
+构建标题栏、当前路径栏、左侧导航与右侧内容区,初始化各标签页及其
+ViewModel,并将所有 ViewModel 的加载状态汇总到全局进度遮罩。
+"""
+
 import os
 import sys
 import customtkinter as ctk
@@ -19,13 +25,11 @@ from src.viewmodel.packages_viewmodel import PackagesViewModel
 from src.viewmodel.tool_info_viewmodel import ToolInfoViewModel
 from src.viewmodel.commands_viewmodel import CommandsViewModel
 from src.viewmodel.executor_viewmodel import ExecutorViewModel
-from src.viewmodel.adb_viewmodel import AdbViewModel
 from src.ui.fonts import font as _font
 from src.ui.env_tab import EnvTab
 from src.ui.packages_tab import PackagesTab
 from src.ui.commands_tab import CommandsTab
 from src.ui.execute_tab import ExecuteTab
-from src.ui.adb_tab import AdbTab
 from src.ui.loading_overlay import LoadingOverlay
 from src.core.tools import TOOL_INFO_FUNCS
 
@@ -48,7 +52,6 @@ class DevToolManagerApp(ctk.CTk):
         self._tool_vm = ToolInfoViewModel()
         self._cmd_vm = CommandsViewModel()
         self._exec_vm = ExecutorViewModel()
-        self._adb_vm = AdbViewModel()
 
         self.grid_rowconfigure(0, weight=0)
         self.grid_rowconfigure(1, weight=0)
@@ -140,7 +143,6 @@ class DevToolManagerApp(ctk.CTk):
 
         self._cmd_tab = CommandsTab(cmd_sub.add("命令详情"), self._cmd_vm)
         self._exec_tab = ExecuteTab(cmd_sub.add("执行"), self._exec_vm)
-        self._adb_tab = AdbTab(cmd_sub.add("ADB"), self._adb_vm)
 
         self._current_tab = None
         self._switch_tab("Environment")
@@ -165,7 +167,6 @@ class DevToolManagerApp(ctk.CTk):
         self._pkgs_tab.bind_viewmodels()
         self._cmd_tab.bind_viewmodels()
         self._exec_tab.bind_viewmodels()
-        self._adb_tab.bind_viewmodels()
 
         # 所有 viewmodel 的 is_loading 驱动全局进度框
         self._env_vm.is_loading.on_change(lambda v: self._on_global_loading("环境", v))
@@ -173,7 +174,6 @@ class DevToolManagerApp(ctk.CTk):
         self._tool_vm.is_loading.on_change(lambda v: self._on_global_loading("工具信息", v))
         self._cmd_vm.is_loading.on_change(lambda v: self._on_global_loading("命令", v))
         self._exec_vm.is_running.on_change(lambda v: self._on_global_loading("执行", v))
-        self._adb_vm.is_loading.on_change(lambda v: self._on_global_loading("ADB", v))
 
     def _on_global_loading(self, tag, loading):
         if loading:
@@ -188,7 +188,6 @@ class DevToolManagerApp(ctk.CTk):
 
     def _on_refresh(self):
         self._env_vm.refresh()
-        self._pkgs_vm.refresh()
         self._cmd_vm.refresh()
         cat = self._env_tab.cat_combobox.get()
         if cat in TOOL_INFO_FUNCS:

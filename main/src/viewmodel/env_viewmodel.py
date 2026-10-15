@@ -1,3 +1,9 @@
+"""环境变量视图模型。
+
+将 :mod:`src.core.env` 的能力包装为后台线程操作,通过 Observable 驱动
+环境标签页刷新;涵盖分类读取、变量增删改与 PATH 条目管理。
+"""
+
 import os
 import threading
 

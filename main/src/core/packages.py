@@ -1,3 +1,9 @@
+"""Python 包管理核心。
+
+维护按功能/语言分类的已知包标签表,结合 pip list 实际安装状态,
+提供分类查询与安装/卸载能力。
+"""
+
 import sys
 import json
 import subprocess

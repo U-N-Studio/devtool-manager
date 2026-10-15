@@ -1,3 +1,9 @@
+"""命令执行视图模型。
+
+封装 :class:`CommandExecutor` 的流式输出,维护工作目录、退出码与
+输出缓冲(上限 5000 行),驱动执行标签页的输出区与状态栏。
+"""
+
 import os
 
 from src.viewmodel.observable import Observable

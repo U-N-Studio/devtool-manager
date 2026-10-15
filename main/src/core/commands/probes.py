@@ -1,3 +1,10 @@
+"""命令配置项探测。
+
+为 npm / pip / git / gradle / mvn / cargo / go / conda 等工具执行各自的
+config 查询命令,将原始输出解析为统一的 ``{level, items}`` 配置段列表,
+供命令详情页展示。
+"""
+
 import sys
 import os
 import subprocess

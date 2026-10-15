@@ -1,10 +1,17 @@
+"""开发工具命令定义与详情加载。
+
+维护内置命令清单(git / npm / python …),通过执行 --version / --help 解析版本、
+参数、子命令,并委托 :mod:`src.core.commands.probes` 探测配置项,最终组装为
+供 UI 展示的命令详情字典。
+"""
+
 import sys
 import os
 import re
 import subprocess
 import shutil
 
-from src.core.command_probes import probe_command
+from src.core.commands.probes import probe_command
 
 _SUBPROCESS_FLAGS = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
 

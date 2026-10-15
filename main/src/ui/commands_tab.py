@@ -1,7 +1,13 @@
+"""命令详情标签页。
+
+展示选中命令的版本、路径、状态、子命令、参数、环境变量与配置段,
+配置项附加术语表释义;支持按已安装过滤与刷新。
+"""
+
 import customtkinter as ctk
 
 from src.ui.fonts import font as _font, mono as _mono
-from src.core.config_glossary import get_description
+from src.core.commands import get_description
 
 
 class CommandsTab:

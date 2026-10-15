@@ -1,3 +1,9 @@
+"""可观察值。
+
+线程安全的简易观察者:值变化时通知所有订阅回调;若处于非 UI 线程,则通过
+注入的 UI 调度器转回主线程执行,避免在后台线程直接操作 Tk 控件。
+"""
+
 import threading
 from typing import Callable, Any
 

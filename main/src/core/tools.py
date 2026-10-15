@@ -1,9 +1,13 @@
+"""工具链信息采集核心。
+
+为 Java / Python / Android / Node.js / Go / Rust 各语言运行时探测版本、
+安装路径与配套工具(javac、pip、adb、npm、cargo 等),组装为工具信息卡片数据。
+"""
+
 import sys
 import os
 import subprocess
 import shutil
-
-_SUBPROCESS_FLAGS = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
 
 
 def _run_version_cmd(args, timeout=5):

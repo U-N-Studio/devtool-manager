@@ -1,3 +1,9 @@
+"""全局加载遮罩。
+
+引用计数式遮罩:任一 ViewModel 标记加载时显示旋转指示器,
+全部空闲后销毁,避免并发加载时遮罩闪烁。
+"""
+
 import customtkinter as ctk
 
 from src.ui.fonts import font as _font

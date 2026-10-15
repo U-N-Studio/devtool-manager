@@ -1,3 +1,9 @@
+"""工具链信息视图模型。
+
+按环境分类(Java / Python / Android …)调用 :mod:`src.core.tools` 采集
+版本与路径等信息,通过 Observable 驱动环境标签页中的工具卡片刷新。
+"""
+
 import threading
 
 from src.viewmodel.observable import Observable

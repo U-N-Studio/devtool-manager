@@ -1,3 +1,9 @@
+"""命令管理视图模型。
+
+加载命令清单(支持按已安装过滤)与选中命令的详情(版本/参数/子命令/
+环境变量/配置段),后台线程执行探测后通过 Observable 回传命令标签页。
+"""
+
 import threading
 
 from src.viewmodel.observable import Observable

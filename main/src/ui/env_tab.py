@@ -1,3 +1,9 @@
+"""环境变量标签页。
+
+按分类展示系统/用户环境变量与 PATH 条目,支持来源徽章、变量增删改、
+PATH 条目管理;选中含工具信息的分类时联动刷新工具卡片。
+"""
+
 import customtkinter as ctk
 
 from src.ui.fonts import font as _font
