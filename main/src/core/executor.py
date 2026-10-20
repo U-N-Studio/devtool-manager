@@ -62,10 +62,12 @@ class CommandExecutor:
 
             def _read_stream(stream, callback):
                 try:
-                    for line in iter(stream.readline, ""):
+                    for line in iter(stream.readline, b""):
+                        if not line:
+                            break
                         if callback:
                             callback(line)
-                except ValueError:
+                except (ValueError, OSError):
                     pass
 
             t_out = threading.Thread(

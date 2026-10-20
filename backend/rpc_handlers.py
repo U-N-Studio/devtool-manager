@@ -174,18 +174,23 @@ def handle_executor_execute(params, notify):
     with _executors_lock:
         _executors[session_id] = executor
 
+    def _decode(line):
+        if isinstance(line, bytes):
+            return line.decode("utf-8", errors="replace")
+        return line
+
     def on_output(line):
         notify("executor.output", {
             "sessionId": session_id,
             "stream": "stdout",
-            "line": line,
+            "line": _decode(line),
         })
 
     def on_error(line):
         notify("executor.output", {
             "sessionId": session_id,
             "stream": "stderr",
-            "line": line,
+            "line": _decode(line),
         })
 
     def on_done(exit_code):
