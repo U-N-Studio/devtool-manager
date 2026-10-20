@@ -1,0 +1,13 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "devtool-backend"
+version = "0.1.0"
+description = "DevTool Manager Python RPC backend"
+requires-python = ">=3.9"
+dependencies = ["pyinstaller>=6.0"]
+
+[tool.setuptools]
+py-modules = ["server", "rpc_handlers"]
