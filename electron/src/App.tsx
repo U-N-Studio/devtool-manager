@@ -4,6 +4,7 @@ import { LoadingOverlay } from '@/components/layout/LoadingOverlay'
 import { EnvTab } from '@/components/env/EnvTab'
 import { PackagesTab } from '@/components/packages/PackagesTab'
 import { CommandsTab } from '@/components/commands/CommandsTab'
+import { ExecuteTab } from '@/components/executor/ExecuteTab'
 import { useAppStore } from '@/stores/appStore'
 import { useEnvStore } from '@/stores/envStore'
 import { usePackagesStore } from '@/stores/packagesStore'
@@ -25,11 +26,7 @@ export default function App() {
           {activeTab === 'env' && <EnvTab />}
           {activeTab === 'packages' && <PackagesTab />}
           {activeTab === 'commands' && <CommandsTab />}
-          {activeTab === 'executor' && (
-            <div className="p-4 text-muted-foreground">
-              Execute Tab (Task 6)
-            </div>
-          )}
+          {activeTab === 'executor' && <ExecuteTab />}
         </main>
       </div>
       <LoadingOverlay visible={globalLoading} />
