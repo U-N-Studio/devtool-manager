@@ -34,6 +34,11 @@ export interface PythonInfo {
   executable: string
 }
 
+export interface ToolInfoDetail {
+  label: string
+  value: string
+}
+
 export interface ToolInfo {
   installed: boolean
   version?: string | null
@@ -41,7 +46,7 @@ export interface ToolInfo {
   compiler?: string | null
   sdk?: string | null
   ndk?: string | null
-  details: string[]
+  details: ToolInfoDetail[]
 }
 
 export interface PackageItem {

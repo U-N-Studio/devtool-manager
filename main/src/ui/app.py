@@ -307,9 +307,9 @@ class DevToolManagerApp(ctk.CTk):
         self._content_frame.grid_rowconfigure(0, weight=1)
 
         tabs = [
+            ("Commands", "命令管理", ">_"),
             ("Environment", "环境变量", "≡"),
             ("Packages", "包管理", "▤"),
-            ("Commands", "命令管理", ">_"),
         ]
         self._tab_buttons = {}
         self._tab_frames = {}
@@ -341,7 +341,7 @@ class DevToolManagerApp(ctk.CTk):
         self._exec_tab = ExecuteTab(cmd_sub.add("执行"), self._exec_vm)
 
         self._current_tab = None
-        self._switch_tab("Environment")
+        self._switch_tab("Commands")
 
         # 底部状态区
         self._status_label = ctk.CTkLabel(sidebar, text="", anchor="w",
@@ -397,6 +397,12 @@ class DevToolManagerApp(ctk.CTk):
         self._current_tab = key
         if hasattr(self, "_status_label"):
             self._status_label.configure(text=f"● {key}")
+        # 首次切到环境页时加载环境数据与工具信息
+        if key == "Environment" and not self._env_vm.categorized_env.value:
+            self._env_vm.refresh()
+            cat = self._env_tab.cat_combobox.get()
+            if cat in TOOL_INFO_FUNCS:
+                self._tool_vm.refresh(cat)
 
     def _bind_viewmodels(self):
         self._env_vm.is_loading.on_change(self._on_loading_changed)
@@ -423,11 +429,13 @@ class DevToolManagerApp(ctk.CTk):
         self._env_tab.btn_add.configure(state=state)
 
     def _on_refresh(self):
-        self._env_vm.refresh()
+        # 始终刷新命令管理;环境与工具信息在切到环境页时按需刷新
         self._cmd_vm.refresh()
-        cat = self._env_tab.cat_combobox.get()
-        if cat in TOOL_INFO_FUNCS:
-            self._tool_vm.refresh(cat)
+        if self._current_tab == "Environment":
+            self._env_vm.refresh()
+            cat = self._env_tab.cat_combobox.get()
+            if cat in TOOL_INFO_FUNCS:
+                self._tool_vm.refresh(cat)
 
     def _schedule_on_ui(self, callback: callable):
         self.after(0, callback)

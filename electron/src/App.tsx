@@ -1,19 +1,40 @@
-import { useEffect, useState } from 'react'
+import { TitleBar } from '@/components/layout/TitleBar'
+import { Sidebar } from '@/components/layout/Sidebar'
+import { LoadingOverlay } from '@/components/layout/LoadingOverlay'
+import { EnvTab } from '@/components/env/EnvTab'
+import { useAppStore } from '@/stores/appStore'
+import { useEnvStore } from '@/stores/envStore'
 
 export default function App() {
-  const [status, setStatus] = useState('connecting...')
-
-  useEffect(() => {
-    window.api
-      .rpc('ping')
-      .then((r: any) => setStatus(JSON.stringify(r)))
-      .catch((e: Error) => setStatus(`error: ${e.message}`))
-  }, [])
+  const activeTab = useAppStore((s) => s.activeTab)
+  const envLoading = useEnvStore((s) => s.isLoading)
+  const globalLoading = envLoading
 
   return (
-    <div className="flex h-screen w-screen flex-col items-center justify-center">
-      <h1 className="text-2xl font-bold">DevTool Manager</h1>
-      <p className="mt-4 text-muted-foreground">{status}</p>
+    <div className="relative flex h-screen w-screen flex-col">
+      <TitleBar />
+      <div className="flex flex-1 overflow-hidden">
+        <Sidebar />
+        <main className="flex-1 overflow-hidden">
+          {activeTab === 'env' && <EnvTab />}
+          {activeTab === 'packages' && (
+            <div className="p-4 text-muted-foreground">
+              Packages Tab (Task 4)
+            </div>
+          )}
+          {activeTab === 'commands' && (
+            <div className="p-4 text-muted-foreground">
+              Commands Tab (Task 5)
+            </div>
+          )}
+          {activeTab === 'executor' && (
+            <div className="p-4 text-muted-foreground">
+              Execute Tab (Task 6)
+            </div>
+          )}
+        </main>
+      </div>
+      <LoadingOverlay visible={globalLoading} />
     </div>
   )
 }
