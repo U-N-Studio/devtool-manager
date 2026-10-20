@@ -10,7 +10,17 @@ import json
 from concurrent.futures import ThreadPoolExecutor
 
 # main/ 父目录上 sys.path,使 `from src.core... import` 可解析(main/src/__init__.py 即 src 包)
-_MAIN_PARENT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "main"))
+# 开发态: backend/server.py -> ../main (即 main/ 父目录, main/src/__init__.py 即 src 包)
+# 冻结态(PyInstaller): --add-data "main/src;src" 将内容放在 <MEIPASS>/src/, 故 sys.path 需 <MEIPASS>
+def _resolve_main_parent():
+    if getattr(sys, "frozen", False):
+        meipass = getattr(sys, "_MEIPASS", None)
+        if meipass:
+            return meipass
+    return os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "main"))
+
+
+_MAIN_PARENT = _resolve_main_parent()
 if _MAIN_PARENT not in sys.path:
     sys.path.insert(0, _MAIN_PARENT)
 
