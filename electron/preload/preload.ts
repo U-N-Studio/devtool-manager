@@ -1,5 +1,4 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import { randomUUID } from 'crypto'
 
 type PendingEntry = {
   resolve: (value: unknown) => void
@@ -26,9 +25,14 @@ ipcRenderer.on('rpc:notification', (_event, notification: { method: string; para
   handlers?.forEach((h) => h(notification.params))
 })
 
+function newRequestId(): string {
+  return globalThis.crypto?.randomUUID?.()
+    ?? (Date.now().toString(36) + Math.random().toString(36).slice(2))
+}
+
 contextBridge.exposeInMainWorld('api', {
   rpc: (method: string, params?: object): Promise<unknown> => {
-    const id = randomUUID()
+    const id = newRequestId()
     return new Promise((resolve, reject) => {
       pendingRpc.set(id, { resolve, reject })
       ipcRenderer.send('rpc:request', { id, method, params })

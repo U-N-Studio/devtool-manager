@@ -6,10 +6,11 @@ import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { CommandDetailCard } from './CommandDetailCard'
 import { useCommandsStore } from '@/stores/commandsStore'
+import { useExecutorStore } from '@/stores/executorStore'
 
 export function CommandsTab() {
   const {
-    commandNames,
+    commandItems,
     selectedDetail,
     isLoading,
     message,
@@ -21,15 +22,22 @@ export function CommandsTab() {
     selectCommand,
   } = useCommandsStore()
 
+  const initExecutor = useExecutorStore((s) => s.initSubscriptions)
+
   useEffect(() => {
     refresh()
   }, [refresh])
 
-  const filteredNames = searchTerm
-    ? commandNames.filter((n) =>
-        n.toLowerCase().includes(searchTerm.toLowerCase()),
+  useEffect(() => {
+    const unsub = initExecutor()
+    return unsub
+  }, [initExecutor])
+
+  const filteredItems = searchTerm
+    ? commandItems.filter((c) =>
+        c.name.toLowerCase().includes(searchTerm.toLowerCase()),
       )
-    : commandNames
+    : commandItems
 
   const handleClick = (name: string) => {
     selectCommand(name)
@@ -71,22 +79,29 @@ export function CommandsTab() {
         </div>
         <ScrollArea className="flex-1">
           <div className="py-1">
-            {filteredNames.length === 0 ? (
+            {filteredItems.length === 0 ? (
               <div className="px-3 py-6 text-center text-xs text-muted-foreground">
                 {isLoading ? '加载中...' : '无命令'}
               </div>
             ) : (
-              filteredNames.map((name) => {
-                const active = selectedDetail?.name === name
+              filteredItems.map((item) => {
+                const active = selectedDetail?.name === item.name
                 return (
                   <button
-                    key={name}
-                    onClick={() => handleClick(name)}
-                    className={`w-full px-3 py-1.5 text-left font-mono text-sm hover:bg-accent ${
+                    key={item.name}
+                    onClick={() => handleClick(item.name)}
+                    className={`flex w-full items-center gap-2 px-3 py-1.5 text-left font-mono text-sm hover:bg-accent ${
                       active ? 'bg-accent text-accent-foreground' : ''
                     }`}
                   >
-                    {name}
+                    <span
+                      className={`h-1.5 w-1.5 shrink-0 rounded-full ${
+                        item.installed ? 'bg-green-500' : 'bg-zinc-400'
+                      }`}
+                    />
+                    <span className={item.installed ? '' : 'text-muted-foreground'}>
+                      {item.name}
+                    </span>
                   </button>
                 )
               })

@@ -8,8 +8,17 @@ export default defineConfig({
   plugins: [
     react(),
     electron([
-      { entry: 'main/main.ts', vite: { build: { outDir: 'dist-electron', rollupOptions: { external: ['electron'] } } } },
-      { entry: 'preload/preload.ts', vite: { build: { outDir: 'dist-electron', rollupOptions: { external: ['electron'] } } } },
+      {
+        entry: 'main/main.ts',
+        vite: { build: { outDir: 'dist-electron', rollupOptions: { external: ['electron'] } } },
+        // Passing onstart disables the plugin's auto-start of Electron.
+        // The dev:electron npm script launches Electron via `wait-on && electron .`.
+        onstart: () => {},
+      },
+      {
+        entry: 'preload/preload.ts',
+        vite: { build: { outDir: 'dist-electron', rollupOptions: { external: ['electron'] } } },
+      },
     ]),
     renderer(),
   ],

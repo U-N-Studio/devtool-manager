@@ -102,7 +102,11 @@ def get_pip_version():
     try:
         py = get_python_executable()
         return subprocess.check_output(
-            [py, "-m", "pip", "--version"], text=True, creationflags=_SUBPROCESS_FLAGS
+            [py, "-m", "pip", "--version"],
+            text=True,
+            creationflags=_SUBPROCESS_FLAGS,
+            stdin=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
         ).strip()
     except Exception:
         return "N/A"

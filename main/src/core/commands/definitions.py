@@ -1,4 +1,4 @@
-"""开发工具命令定义与详情加载。
+﻿"""开发工具命令定义与详情加载。
 
 维护内置命令清单(git / npm / python …),通过执行 --version / --help 解析版本、
 参数、子命令,并委托 :mod:`src.core.commands.probes` 探测配置项,最终组装为
@@ -75,6 +75,8 @@ def _run_cmd(args, timeout=5):
         result = subprocess.run(
             args, capture_output=True, text=True, timeout=timeout,
             creationflags=_SUBPROCESS_FLAGS, shell=use_shell,
+            encoding="utf-8", errors="replace",
+            stdin=subprocess.DEVNULL,
         )
         output = (result.stdout or "") + (result.stderr or "")
         return output.strip()

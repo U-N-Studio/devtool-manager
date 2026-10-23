@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
-import { ChevronDown } from 'lucide-react'
+import { ChevronDown, Play, Square, Trash2 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import {
   Card,
   CardContent,
@@ -19,6 +21,8 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { useCommandsStore } from '@/stores/commandsStore'
+import { useExecutorStore } from '@/stores/executorStore'
+import { OutputConsole } from '@/components/executor/OutputConsole'
 import type { CommandDetail } from '@/lib/types'
 
 interface CommandDetailCardProps {
@@ -28,6 +32,12 @@ interface CommandDetailCardProps {
 export function CommandDetailCard({ detail }: CommandDetailCardProps) {
   const getDescription = useCommandsStore((s) => s.getDescription)
   const [descMap, setDescMap] = useState<Record<string, string>>({})
+  const [args, setArgs] = useState('')
+  const execute = useExecutorStore((s) => s.execute)
+  const kill = useExecutorStore((s) => s.kill)
+  const isRunning = useExecutorStore((s) => s.isRunning)
+  const exitCode = useExecutorStore((s) => s.exitCode)
+  const clearOutput = useExecutorStore((s) => s.clearOutput)
 
   useEffect(() => {
     let cancelled = false
@@ -49,6 +59,17 @@ export function CommandDetailCard({ detail }: CommandDetailCardProps) {
       cancelled = true
     }
   }, [detail, getDescription])
+
+  const handleRun = () => {
+    const fullCommand = args.trim() ? `${detail.name} ${args.trim()}` : detail.name
+    void execute(fullCommand)
+  }
+
+  const handleStop = () => {
+    void kill()
+  }
+
+  const handleClear = () => clearOutput()
 
   return (
     <Card>
@@ -198,6 +219,71 @@ export function CommandDetailCard({ detail }: CommandDetailCardProps) {
             </CollapsibleContent>
           </Collapsible>
         )}
+
+        <div className="rounded-md border border-border">
+          <div className="flex items-center gap-2 border-b border-border bg-muted/30 px-3 py-2">
+            <span className="text-sm font-medium">快速运行</span>
+            {exitCode !== null && (
+              <Badge variant={exitCode === 0 ? 'default' : 'destructive'}>
+                Exit: {exitCode}
+              </Badge>
+            )}
+            <div className="ml-auto flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7"
+                onClick={handleClear}
+                title="清空输出"
+                disabled={isRunning}
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </Button>
+              {isRunning ? (
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  className="h-7"
+                  onClick={handleStop}
+                >
+                  <Square className="h-3.5 w-3.5" />
+                  停止
+                </Button>
+              ) : (
+                <Button
+                  size="sm"
+                  className="h-7"
+                  onClick={handleRun}
+                  disabled={!detail.installed}
+                  title={detail.installed ? '运行' : '命令未安装'}
+                >
+                  <Play className="h-3.5 w-3.5" />
+                  运行
+                </Button>
+              )}
+            </div>
+          </div>
+          <div className="flex items-center gap-2 px-3 py-2">
+            <span className="font-mono text-xs text-muted-foreground">
+              {detail.name}
+            </span>
+            <Input
+              value={args}
+              onChange={(e) => setArgs(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !isRunning && detail.installed) {
+                  handleRun()
+                }
+              }}
+              placeholder="参数（回车运行）"
+              className="h-8 flex-1 font-mono text-xs"
+              disabled={isRunning}
+            />
+          </div>
+          <div className="h-48 border-t border-border">
+            <OutputConsole />
+          </div>
+        </div>
       </CardContent>
     </Card>
   )

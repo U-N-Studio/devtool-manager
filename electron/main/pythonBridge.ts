@@ -23,6 +23,8 @@ export class PythonBridge extends EventEmitter {
       ? path.join(process.resourcesPath, 'backend', 'devtool-backend.exe')
       : 'python'
 
+    console.log(`[pythonBridge] spawning: ${command} ${args.join(' ')}`)
+
     this.proc = spawn(command, args, {
       stdio: ['pipe', 'pipe', 'pipe'],
       windowsHide: true,
@@ -37,8 +39,12 @@ export class PythonBridge extends EventEmitter {
       console.log(`[backend] exited with code ${code}`)
       this.proc = null
     })
+    this.proc.on('error', (err) => {
+      console.error('[pythonBridge] spawn error:', err)
+    })
 
     await this.waitForReady()
+    console.log('[pythonBridge] ready signal received (or timeout)')
   }
 
   private waitForReady(): Promise<void> {
@@ -72,17 +78,23 @@ export class PythonBridge extends EventEmitter {
   private handleMessage(msg: any): void {
     if (msg.method && !msg.id) {
       if (msg.method === 'ready') {
+        console.log('[pythonBridge] received ready notification')
         this.emit('ready')
       }
       this.notificationHandlers.get(msg.method)?.forEach((h) => h(msg.params || {}))
     } else if (msg.id) {
       const pending = this.pending.get(msg.id)
-      if (!pending) return
+      if (!pending) {
+        console.warn(`[pythonBridge] received response for unknown id=${msg.id}`)
+        return
+      }
       this.pending.delete(msg.id)
       clearTimeout(pending.timer)
       if (msg.error) {
+        console.error(`[pythonBridge] rpc id=${msg.id.slice(0,8)} ERROR:`, msg.error.message)
         pending.reject(new Error(msg.error.message))
       } else {
+        console.log(`[pythonBridge] rpc id=${msg.id.slice(0,8)} OK`)
         pending.resolve(msg.result)
       }
     }
@@ -91,12 +103,15 @@ export class PythonBridge extends EventEmitter {
   rpc(method: string, params?: object): Promise<unknown> {
     return new Promise((resolve, reject) => {
       if (!this.proc || !this.proc.stdin) {
+        console.error(`[pythonBridge] rpc ${method} failed: backend not started`)
         reject(new Error('Python backend not started'))
         return
       }
       const id = randomUUID()
+      console.log(`[pythonBridge] rpc ${method} id=${id.slice(0,8)} -> sending`)
       const timer = setTimeout(() => {
         this.pending.delete(id)
+        console.error(`[pythonBridge] rpc ${method} id=${id.slice(0,8)} TIMEOUT`)
         reject(new Error(`RPC timeout: ${method}`))
       }, 60000)
       this.pending.set(id, { resolve, reject, timer })

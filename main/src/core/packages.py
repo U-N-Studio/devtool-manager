@@ -207,7 +207,11 @@ def get_installed_packages():
     try:
         py = get_python_executable()
         output = subprocess.check_output(
-            [py, "-m", "pip", "list", "--format=json"], text=True, creationflags=_SUBPROCESS_FLAGS
+            [py, "-m", "pip", "list", "--format=json"],
+            text=True,
+            creationflags=_SUBPROCESS_FLAGS,
+            stdin=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
         )
         return json.loads(output)
     except Exception:
@@ -256,6 +260,7 @@ def install_package(name):
         result = subprocess.run(
             [py, "-m", "pip", "install", name],
             capture_output=True, text=True, creationflags=_SUBPROCESS_FLAGS,
+            stdin=subprocess.DEVNULL,
         )
         return result.returncode == 0, result.stdout + result.stderr
     except Exception as e:
@@ -268,6 +273,7 @@ def uninstall_package(name):
         result = subprocess.run(
             [py, "-m", "pip", "uninstall", "-y", name],
             capture_output=True, text=True, creationflags=_SUBPROCESS_FLAGS,
+            stdin=subprocess.DEVNULL,
         )
         return result.returncode == 0, result.stdout + result.stderr
     except Exception as e:

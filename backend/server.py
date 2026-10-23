@@ -7,7 +7,14 @@
 import sys
 import os
 import json
+import threading
 from concurrent.futures import ThreadPoolExecutor
+
+# Windows 上 stdout 默认用 cp936 编码,导致中文字符串输出乱码。
+# 强制 stdout/stderr 使用 UTF-8。
+if sys.platform == "win32":
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
 
 # main/ 父目录上 sys.path,使 `from src.core... import` 可解析(main/src/__init__.py 即 src 包)
 # 开发态: backend/server.py -> ../main (即 main/ 父目录, main/src/__init__.py 即 src 包)
@@ -26,11 +33,16 @@ if _MAIN_PARENT not in sys.path:
 
 from rpc_handlers import HANDLERS, handle_executor_execute  # noqa: E402
 
+# stdout 被多个 worker 线程并发写,必须加锁,否则 JSON 行会交错损坏。
+_stdout_lock = threading.Lock()
+
 
 def send_message(msg: dict):
-    """向 stdout 写入一条 JSON-RPC 消息。"""
-    sys.stdout.write(json.dumps(msg, ensure_ascii=False) + "\n")
-    sys.stdout.flush()
+    """向 stdout 写入一条 JSON-RPC 消息(线程安全)。"""
+    line = json.dumps(msg, ensure_ascii=False) + "\n"
+    with _stdout_lock:
+        sys.stdout.write(line)
+        sys.stdout.flush()
 
 
 def send_notification(method: str, params: dict):
@@ -80,7 +92,7 @@ def main():
     # 启动通知:告知 Electron 后端已就绪
     send_notification("ready", {})
 
-    pool = ThreadPoolExecutor(max_workers=4)
+    pool = ThreadPoolExecutor(max_workers=8)
     try:
         for line in sys.stdin:
             line = line.strip()

@@ -10,7 +10,7 @@ export function createMainWindow(): BrowserWindow {
     frame: false,
     titleBarStyle: 'hidden',
     webPreferences: {
-      preload: path.join(__dirname, '../preload/preload.js'),
+      preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
     },
@@ -24,6 +24,16 @@ export function createMainWindow(): BrowserWindow {
   } else {
     win.loadFile(path.join(__dirname, '../dist/index.html'))
   }
+
+  win.webContents.on('console-message', (_e, level, message, line, sourceId) => {
+    console.log(`[renderer:${level}] ${message} (${sourceId}:${line})`)
+  })
+  win.webContents.on('did-fail-load', (_e, code, desc, url) => {
+    console.error(`[did-fail-load] ${code} ${desc} url=${url}`)
+  })
+  win.webContents.on('render-process-gone', (_e, details) => {
+    console.error(`[render-process-gone] ${details.reason}`, details)
+  })
 
   return win
 }

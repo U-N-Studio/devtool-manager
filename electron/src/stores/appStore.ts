@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 
-export type TabId = 'env' | 'packages' | 'commands' | 'executor'
+export type TabId = 'commands' | 'env' | 'packages'
 
 interface AppState {
   activeTab: TabId
@@ -10,7 +10,7 @@ interface AppState {
 }
 
 export const useAppStore = create<AppState>((set) => ({
-  activeTab: 'env',
+  activeTab: 'commands',
   setActiveTab: (tab) => set({ activeTab: tab }),
   globalLoading: false,
   setGlobalLoading: (loading) => set({ globalLoading: loading }),

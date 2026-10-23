@@ -3,7 +3,7 @@ import { rpc } from '@/lib/ipc'
 import type { CommandDetail } from '@/lib/types'
 
 interface CommandsState {
-  commandNames: string[]
+  commandItems: { name: string; installed: boolean }[]
   selectedDetail: CommandDetail | null
   descriptions: Record<string, string>
   isLoading: boolean
@@ -18,12 +18,12 @@ interface CommandsState {
 }
 
 export const useCommandsStore = create<CommandsState>((set, get) => ({
-  commandNames: [],
+  commandItems: [],
   selectedDetail: null,
   descriptions: {},
   isLoading: false,
   message: '',
-  filterInstalled: false,
+  filterInstalled: true,
   searchTerm: '',
   refresh: async () => {
     set({ isLoading: true, message: '' })
@@ -31,7 +31,7 @@ export const useCommandsStore = create<CommandsState>((set, get) => ({
       const r = await rpc('commands.list', {
         installed_only: get().filterInstalled,
       })
-      set({ commandNames: r.names })
+      set({ commandItems: r.items })
     } catch (e: any) {
       set({ message: e.message })
     } finally {

@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, Menu } from 'electron'
+import { app, BrowserWindow, ipcMain, Menu, IpcMainEvent } from 'electron'
 import { createMainWindow } from './window'
 import { buildAppMenu } from './menu'
 import { PythonBridge } from './pythonBridge'
@@ -10,13 +10,13 @@ async function bootstrap(): Promise<void> {
   bridge = new PythonBridge()
   await bridge.start()
 
-  ipcMain.handle('rpc:request', async (_event, request: { id: string; method: string; params?: object }) => {
+  ipcMain.on('rpc:request', async (event: IpcMainEvent, request: { id: string; method: string; params?: object }) => {
     try {
       if (!bridge) throw new Error('Python bridge not initialized')
       const result = await bridge.rpc(request.method, request.params)
-      return { id: request.id, result }
+      event.sender.send('rpc:response', { id: request.id, result })
     } catch (e: any) {
-      return { id: request.id, error: { code: -32603, message: e.message } }
+      event.sender.send('rpc:response', { id: request.id, error: { code: -32603, message: e?.message ?? String(e) } })
     }
   })
 

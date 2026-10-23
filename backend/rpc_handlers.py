@@ -150,9 +150,14 @@ def handle_packages_uninstall(params):
 
 def handle_commands_list(params):
     names = get_command_names()
-    if params.get("installed_only"):
-        names = [n for n in names if shutil.which(n)]
-    return {"names": names}
+    installed_only = params.get("installed_only")
+    items = []
+    for n in names:
+        is_installed = shutil.which(n) is not None
+        if installed_only and not is_installed:
+            continue
+        items.append({"name": n, "installed": is_installed})
+    return {"items": items}
 
 
 def handle_commands_detail(params):

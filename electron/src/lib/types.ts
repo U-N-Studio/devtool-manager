@@ -153,7 +153,7 @@ export interface RpcResultMap {
   'packages.list': { items: PackageItem[] }
   'packages.install': { ok: boolean; output: string }
   'packages.uninstall': { ok: boolean; output: string }
-  'commands.list': { names: string[] }
+  'commands.list': { items: { name: string; installed: boolean }[] }
   'commands.detail': CommandDetail
   'commands.description': { text: string }
   'executor.execute': { sessionId: string }

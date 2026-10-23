@@ -1,4 +1,4 @@
-"""命令配置项探测。
+﻿"""命令配置项探测。
 
 为 npm / pip / git / gradle / mvn / cargo / go / conda 等工具执行各自的
 config 查询命令,将原始输出解析为统一的 ``{level, items}`` 配置段列表,
@@ -17,7 +17,9 @@ _SUBPROCESS_FLAGS = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 
 def _run(args, timeout=5):
     try:
         r = subprocess.run(args, capture_output=True, text=True, timeout=timeout,
-                           creationflags=_SUBPROCESS_FLAGS, shell=True)
+                           creationflags=_SUBPROCESS_FLAGS, shell=True,
+                           encoding="utf-8", errors="replace",
+                           stdin=subprocess.DEVNULL)
         return (r.stdout or "") + (r.stderr or "")
     except Exception:
         return ""
