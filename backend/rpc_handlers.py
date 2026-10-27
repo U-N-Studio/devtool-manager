@@ -29,9 +29,11 @@ from src.core.packages import (
 from src.core.commands import (
     get_command_names,
     load_command_detail,
+    load_subcommand_help,
     get_description,
 )
 from src.core.executor import CommandExecutor
+from src.core import store
 
 _executors: dict[str, CommandExecutor] = {}
 _executors_lock = threading.Lock()
@@ -168,6 +170,10 @@ def handle_commands_description(params):
     return {"text": get_description(params["name"])}
 
 
+def handle_commands_subcommand_help(params):
+    return load_subcommand_help(params["command"], params["subcommand"])
+
+
 def handle_executor_execute(params, notify):
     """启动子进程执行命令, 立即返回 sessionId。
 
@@ -226,6 +232,34 @@ def handle_executor_kill(params):
     return {"ok": False}
 
 
+def handle_history_list(_params):
+    return store.list_history()
+
+
+def handle_history_add(params):
+    return store.add_history(params["command"], params.get("exitCode"))
+
+
+def handle_history_clear(_params):
+    return store.clear_history()
+
+
+def handle_history_delete(params):
+    return store.delete_history(params["id"])
+
+
+def handle_favorites_list(_params):
+    return store.list_favorites()
+
+
+def handle_favorites_add(params):
+    return store.add_favorite(params["command"], params.get("label", ""))
+
+
+def handle_favorites_remove(params):
+    return store.remove_favorite(params["command"])
+
+
 def handle_shutdown(_params):
     with _executors_lock:
         for executor in _executors.values():
@@ -253,6 +287,15 @@ HANDLERS = {
     "commands.list": handle_commands_list,
     "commands.detail": handle_commands_detail,
     "commands.description": handle_commands_description,
+    "commands.subcommand_help": handle_commands_subcommand_help,
+    "executor.execute": handle_executor_execute,
     "executor.kill": handle_executor_kill,
+    "history.list": handle_history_list,
+    "history.add": handle_history_add,
+    "history.clear": handle_history_clear,
+    "history.delete": handle_history_delete,
+    "favorites.list": handle_favorites_list,
+    "favorites.add": handle_favorites_add,
+    "favorites.remove": handle_favorites_remove,
     "shutdown": handle_shutdown,
 }

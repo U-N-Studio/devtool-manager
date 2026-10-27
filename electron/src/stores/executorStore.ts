@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { rpc, onNotification } from '@/lib/ipc'
+import { useHistoryFavoritesStore } from '@/stores/historyFavoritesStore'
 
 interface ExecutorState {
   output: string
@@ -7,6 +8,7 @@ interface ExecutorState {
   exitCode: number | null
   cwd: string
   sessionId: string | null
+  lastCommand: string
   history: string[]
   historyIndex: number
   execute: (command: string) => Promise<void>
@@ -25,6 +27,7 @@ export const useExecutorStore = create<ExecutorState>((set, get) => ({
   exitCode: null,
   cwd: '',
   sessionId: null,
+  lastCommand: '',
   history: [],
   historyIndex: -1,
   execute: async (command) => {
@@ -34,6 +37,7 @@ export const useExecutorStore = create<ExecutorState>((set, get) => ({
       output: s.output + `$ ${command}\n`,
       isRunning: true,
       exitCode: null,
+      lastCommand: command,
       history: [...s.history, command],
       historyIndex: -1,
     }))
@@ -93,11 +97,15 @@ export const useExecutorStore = create<ExecutorState>((set, get) => ({
       'executor.done',
       ({ sessionId, exitCode }) => {
         if (sessionId !== get().sessionId) return
+        const cmd = get().lastCommand
         set((s) => ({
           isRunning: false,
           exitCode,
           output: s.output + `\nProcess exited with code ${exitCode}\n`,
         }))
+        if (cmd) {
+          void useHistoryFavoritesStore.getState().addHistory(cmd, exitCode)
+        }
       },
     )
     return () => {

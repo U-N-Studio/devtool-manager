@@ -7,6 +7,7 @@
 from src.core.commands.definitions import (
     get_command_names,
     load_command_detail,
+    load_subcommand_help,
     clear_cache,
 )
 from src.core.commands.probes import probe_command
@@ -15,6 +16,7 @@ from src.core.commands.glossary import get_description
 __all__ = [
     "get_command_names",
     "load_command_detail",
+    "load_subcommand_help",
     "clear_cache",
     "probe_command",
     "get_description",

@@ -12,6 +12,10 @@ import subprocess
 import shutil
 
 from src.core.commands.probes import probe_command
+from src.core.commands.git_knowledge import (
+    get_git_subcommand_description,
+    get_git_subcommand_params,
+)
 
 _SUBPROCESS_FLAGS = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
 
@@ -100,7 +104,7 @@ def _extract_params(help_text, max_items=30):
                     desc = " ".join(parts[1:]) if len(parts) > 1 else ""
                     if len(desc) > 80:
                         desc = desc[:77] + "..."
-                    params.append({"flag": token, "desc": desc})
+                    params.append({"name": token, "description": desc})
                     if len(params) >= max_items:
                         break
     return params
@@ -144,7 +148,7 @@ def _extract_subcommands(help_text, max_items=50):
             desc = desc[:77] + "..."
         if token not in seen:
             seen.add(token)
-            subs.append({"name": token, "desc": desc})
+            subs.append({"name": token, "description": desc})
             if len(subs) >= max_items:
                 break
 
@@ -167,7 +171,7 @@ def _extract_subcommands(help_text, max_items=50):
                         token = token.strip()
                         if token and token not in seen and _is_subcommand_token(token):
                             seen.add(token)
-                            subs.append({"name": token, "desc": ""})
+                            subs.append({"name": token, "description": ""})
                             if len(subs) >= max_items:
                                 break
                     if len(subs) >= max_items:
@@ -220,6 +224,19 @@ def load_command_detail(name: str) -> dict:
     params = _extract_params(help_text) if help_text else []
     subcommands = _extract_subcommands(help_text) if help_text else []
 
+    # git 子命令: 用中文知识库覆盖描述
+    if name == "git":
+        for sub in subcommands:
+            cn_desc = get_git_subcommand_description(sub["name"])
+            if cn_desc:
+                sub["description"] = cn_desc
+        # 补充知识库中存在但 help 未列出的子命令
+        existing_names = {s["name"] for s in subcommands}
+        from src.core.commands.git_knowledge import GIT_SUBCOMMANDS
+        for sub_name, cn_desc in GIT_SUBCOMMANDS.items():
+            if sub_name not in existing_names:
+                subcommands.append({"name": sub_name, "description": cn_desc})
+
     env_vars = _resolve_env_values(cmd_def.get("env_vars", []))
 
     result = {
@@ -237,5 +254,44 @@ def load_command_detail(name: str) -> dict:
 
     if installed:
         result["config_sections"] = probe_command(name)
+
+    return result
+
+
+def load_subcommand_help(command: str, subcommand: str) -> dict:
+    """查询单个子命令的参数与路径位置参数说明。
+
+    对于 git,返回中文知识库中的参数说明;
+    对于其他命令,尝试执行 `command subcommand --help` 解析参数。
+    """
+    result = {
+        "command": command,
+        "subcommand": subcommand,
+        "params": [],
+        "pathParams": [],
+    }
+
+    if command == "git":
+        param_dict = get_git_subcommand_params(subcommand)
+        for flag, desc in param_dict.items():
+            if flag.startswith("-"):
+                result["params"].append({"name": flag, "description": desc})
+            else:
+                result["pathParams"].append({"name": flag, "description": desc})
+        return result
+
+    # 通用: 执行 `command subcommand --help` 解析参数
+    path = shutil.which(command)
+    if not path:
+        return result
+
+    help_text = _run_cmd([command, subcommand, "--help"], timeout=5) or ""
+    if not help_text:
+        # 尝试 -h
+        help_text = _run_cmd([command, subcommand, "-h"], timeout=5) or ""
+
+    if help_text:
+        raw_params = _extract_params(help_text, max_items=50)
+        result["params"] = raw_params
 
     return result

@@ -68,6 +68,37 @@ export interface CommandSubcommand {
   description: string
 }
 
+export interface CommandEnvVar {
+  name: string
+  value: string
+  set: boolean
+}
+
+export interface HistoryEntry {
+  id: string
+  command: string
+  timestamp: number
+  exitCode: number | null
+}
+
+export interface FavoriteEntry {
+  command: string
+  label: string
+  timestamp: number
+}
+
+export interface SubcommandParam {
+  name: string
+  description: string
+}
+
+export interface SubcommandHelp {
+  command: string
+  subcommand: string
+  params: SubcommandParam[]
+  pathParams: SubcommandParam[]
+}
+
 export interface CommandConfigItem {
   key: string
   value: string
@@ -86,7 +117,7 @@ export interface CommandDetail {
   description: string
   params: CommandParam[]
   subcommands: CommandSubcommand[]
-  env_vars: string[]
+  env_vars: CommandEnvVar[]
   config_sections: CommandConfigSection[]
 }
 
@@ -107,8 +138,16 @@ export type RpcMethod =
   | 'commands.list'
   | 'commands.detail'
   | 'commands.description'
+  | 'commands.subcommand_help'
   | 'executor.execute'
   | 'executor.kill'
+  | 'history.list'
+  | 'history.add'
+  | 'history.clear'
+  | 'history.delete'
+  | 'favorites.list'
+  | 'favorites.add'
+  | 'favorites.remove'
   | 'shutdown'
 
 export type NotificationMethod = 'ready' | 'executor.output' | 'executor.done' | 'env.changed'
@@ -130,12 +169,20 @@ export interface RpcParamsMap {
   'commands.list': { installed_only?: boolean }
   'commands.detail': { name: string }
   'commands.description': { name: string }
+  'commands.subcommand_help': { command: string; subcommand: string }
   'executor.execute': {
     command: string
     cwd?: string
     env?: Record<string, string>
   }
   'executor.kill': { sessionId: string }
+  'history.list': { items: HistoryEntry[] }
+  'history.add': { command: string; exitCode?: number }
+  'history.clear': { ok: boolean }
+  'history.delete': { id: string }
+  'favorites.list': { items: FavoriteEntry[] }
+  'favorites.add': { command: string; label?: string }
+  'favorites.remove': { command: string }
   shutdown: Record<string, never>
 }
 
@@ -156,8 +203,16 @@ export interface RpcResultMap {
   'commands.list': { items: { name: string; installed: boolean }[] }
   'commands.detail': CommandDetail
   'commands.description': { text: string }
+  'commands.subcommand_help': SubcommandHelp
   'executor.execute': { sessionId: string }
   'executor.kill': { ok: boolean }
+  'history.list': { items: HistoryEntry[] }
+  'history.add': { ok: boolean }
+  'history.clear': { ok: boolean }
+  'history.delete': { ok: boolean }
+  'favorites.list': { items: FavoriteEntry[] }
+  'favorites.add': { ok: boolean }
+  'favorites.remove': { ok: boolean }
   shutdown: Record<string, never>
 }
 

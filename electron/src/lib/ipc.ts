@@ -10,7 +10,7 @@ export async function rpc<M extends RpcMethod>(
   method: M,
   params?: RpcParamsMap[M],
 ): Promise<RpcResultMap[M]> {
-  return window.api.rpc(method, params) as Promise<RpcResultMap[M]>
+  return window.api.rpc(method, params as object | undefined) as Promise<RpcResultMap[M]>
 }
 
 export function onNotification<M extends NotificationMethod>(

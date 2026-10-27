@@ -1,11 +1,12 @@
 import { create } from 'zustand'
 import { rpc } from '@/lib/ipc'
-import type { CommandDetail } from '@/lib/types'
+import type { CommandDetail, SubcommandHelp } from '@/lib/types'
 
 interface CommandsState {
   commandItems: { name: string; installed: boolean }[]
   selectedDetail: CommandDetail | null
   descriptions: Record<string, string>
+  subcommandHelps: Record<string, SubcommandHelp | undefined>
   isLoading: boolean
   message: string
   filterInstalled: boolean
@@ -15,12 +16,14 @@ interface CommandsState {
   setSearchTerm: (term: string) => void
   selectCommand: (name: string) => Promise<void>
   getDescription: (name: string) => Promise<string>
+  getSubcommandHelp: (command: string, subcommand: string) => Promise<SubcommandHelp | undefined>
 }
 
 export const useCommandsStore = create<CommandsState>((set, get) => ({
   commandItems: [],
   selectedDetail: null,
   descriptions: {},
+  subcommandHelps: {},
   isLoading: false,
   message: '',
   filterInstalled: true,
@@ -63,6 +66,18 @@ export const useCommandsStore = create<CommandsState>((set, get) => ({
       return r.text
     } catch {
       return ''
+    }
+  },
+  getSubcommandHelp: async (command, subcommand) => {
+    const key = `${command}:${subcommand}`
+    const cached = get().subcommandHelps[key]
+    if (cached !== undefined) return cached
+    try {
+      const r = await rpc('commands.subcommand_help', { command, subcommand })
+      set({ subcommandHelps: { ...get().subcommandHelps, [key]: r } })
+      return r
+    } catch {
+      return undefined
     }
   },
 }))
