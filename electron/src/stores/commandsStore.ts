@@ -11,6 +11,8 @@ interface CommandsState {
   message: string
   filterInstalled: boolean
   searchTerm: string
+  runArgs: string
+  setRunArgs: (args: string) => void
   refresh: () => Promise<void>
   setFilterInstalled: (installed: boolean) => void
   setSearchTerm: (term: string) => void
@@ -28,6 +30,8 @@ export const useCommandsStore = create<CommandsState>((set, get) => ({
   message: '',
   filterInstalled: true,
   searchTerm: '',
+  runArgs: '',
+  setRunArgs: (args) => set({ runArgs: args }),
   refresh: async () => {
     set({ isLoading: true, message: '' })
     try {
@@ -47,7 +51,7 @@ export const useCommandsStore = create<CommandsState>((set, get) => ({
   },
   setSearchTerm: (term) => set({ searchTerm: term }),
   selectCommand: async (name) => {
-    set({ isLoading: true, message: `Loading ${name}...` })
+    set({ isLoading: true, message: `Loading ${name}...`, runArgs: '' })
     try {
       const detail = await rpc('commands.detail', { name })
       set({ selectedDetail: detail, message: '' })

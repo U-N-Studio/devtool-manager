@@ -60,3 +60,33 @@
 
 .titlebar-drag { -webkit-app-region: drag; }
 .titlebar-no-drag { -webkit-app-region: no-drag; }
+
+@layer components {
+  .terminal-panel {
+    @apply border-border bg-card text-card-foreground;
+  }
+  .terminal-header {
+    @apply border-border bg-muted text-muted-foreground;
+  }
+  .terminal-body {
+    @apply bg-card text-foreground;
+  }
+  .terminal-input-row {
+    @apply border-border bg-muted;
+  }
+  .terminal-prompt {
+    @apply text-green-600 dark:text-green-400;
+  }
+  .terminal-text {
+    @apply text-foreground;
+  }
+  .terminal-error {
+    @apply text-red-600 dark:text-red-400;
+  }
+  .terminal-muted {
+    @apply text-muted-foreground;
+  }
+  .terminal-btn {
+    @apply text-muted-foreground hover:text-foreground;
+  }
+}

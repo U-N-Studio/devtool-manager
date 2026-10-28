@@ -1,9 +1,12 @@
 import { useEffect, useState } from 'react'
-import { Minus, Square, X, Copy } from 'lucide-react'
+import { Minus, Square, X, Copy, Sun, Moon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { useAppStore } from '@/stores/appStore'
 
 export function TitleBar() {
   const [maximized, setMaximized] = useState(false)
+  const theme = useAppStore((s) => s.theme)
+  const toggleTheme = useAppStore((s) => s.toggleTheme)
 
   useEffect(() => {
     const unsubscribe = window.api.onWindowState((state) => {
@@ -18,6 +21,19 @@ export function TitleBar() {
         DevTool Manager
       </span>
       <div className="titlebar-no-drag flex items-center gap-1">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-7 w-7"
+          onClick={toggleTheme}
+          title={theme === 'dark' ? '切换到浅色' : '切换到深色'}
+        >
+          {theme === 'dark' ? (
+            <Sun className="h-4 w-4" />
+          ) : (
+            <Moon className="h-4 w-4" />
+          )}
+        </Button>
         <Button
           variant="ghost"
           size="icon"

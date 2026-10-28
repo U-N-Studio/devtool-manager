@@ -8,7 +8,6 @@ import { CommandDetailCard } from './CommandDetailCard'
 import { HistoryPanel } from './HistoryPanel'
 import { FavoritesPanel } from './FavoritesPanel'
 import { useCommandsStore } from '@/stores/commandsStore'
-import { useExecutorStore } from '@/stores/executorStore'
 import { useHistoryFavoritesStore } from '@/stores/historyFavoritesStore'
 import { cn } from '@/lib/utils'
 
@@ -34,7 +33,6 @@ export function CommandsTab() {
     selectCommand,
   } = useCommandsStore()
 
-  const initExecutor = useExecutorStore((s) => s.initSubscriptions)
   const loadHistory = useHistoryFavoritesStore((s) => s.loadHistory)
   const loadFavorites = useHistoryFavoritesStore((s) => s.loadFavorites)
   const historyCount = useHistoryFavoritesStore((s) => s.history.length)
@@ -45,11 +43,6 @@ export function CommandsTab() {
   useEffect(() => {
     refresh()
   }, [refresh])
-
-  useEffect(() => {
-    const unsub = initExecutor()
-    return unsub
-  }, [initExecutor])
 
   useEffect(() => {
     void loadHistory()
@@ -185,8 +178,8 @@ export function CommandsTab() {
         {sidebarTab === 'favorites' && <FavoritesPanel />}
       </aside>
 
-      <div className="flex-1 overflow-hidden">
-        <ScrollArea className="h-full">
+      <div className="flex flex-1 flex-col overflow-hidden">
+        <ScrollArea className="flex-1">
           <div className="p-4">
             {selectedDetail ? (
               <CommandDetailCard detail={selectedDetail} />
