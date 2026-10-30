@@ -50,7 +50,7 @@ export default function App() {
       <TitleBar />
       <div className="flex flex-1 overflow-hidden">
         <Sidebar />
-        <div className="flex flex-1 flex-col overflow-hidden">
+        <div className="relative flex flex-1 flex-col overflow-hidden border-l border-border">
           <main className="flex-1 overflow-hidden">
             {activeTab === 'commands' && <CommandsTab />}
             {activeTab === 'env' && <EnvTab />}
@@ -58,9 +58,9 @@ export default function App() {
           </main>
           <QuickRunBar />
           <BottomTerminal />
+          <LoadingOverlay visible={globalLoading} />
         </div>
       </div>
-      <LoadingOverlay visible={globalLoading} />
     </div>
   )
 }

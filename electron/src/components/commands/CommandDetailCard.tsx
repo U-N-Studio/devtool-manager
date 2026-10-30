@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { ChevronDown, ChevronRight, Star, Loader2 } from 'lucide-react'
+import { ChevronDown, ChevronRight, Star, Info, Loader2 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -137,6 +137,45 @@ export function CommandDetailCard({ detail }: CommandDetailCardProps) {
                 <Button
                   variant="ghost"
                   size="icon"
+                  className="h-7 w-7 text-muted-foreground"
+                  title="基本信息"
+                >
+                  <Info className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent className="max-w-md">
+                <div className="space-y-1 text-xs">
+                  {detail.version && (
+                    <div>
+                      <span className="font-medium">版本: </span>
+                      <span className="font-mono">{detail.version}</span>
+                    </div>
+                  )}
+                  {detail.path && (
+                    <div>
+                      <span className="font-medium">路径: </span>
+                      <span className="break-all font-mono">{detail.path}</span>
+                    </div>
+                  )}
+                  {detail.description && (
+                    <div>
+                      <span className="font-medium">描述: </span>
+                      <span>{detail.description}</span>
+                    </div>
+                  )}
+                  {!detail.version && !detail.path && !detail.description && (
+                    <span>无附加信息</span>
+                  )}
+                </div>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
                   className="ml-auto h-7 w-7"
                   onClick={handleFavToggle}
                   title={isFav ? '取消收藏' : '收藏'}
@@ -152,26 +191,6 @@ export function CommandDetailCard({ detail }: CommandDetailCardProps) {
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="grid grid-cols-1 gap-3 text-xs md:grid-cols-2">
-          <div>
-            <div className="font-medium">版本</div>
-            <div className="break-all font-mono text-muted-foreground">
-              {detail.version || '-'}
-            </div>
-          </div>
-          <div>
-            <div className="font-medium">路径</div>
-            <div className="break-all font-mono text-muted-foreground">
-              {detail.path || '-'}
-            </div>
-          </div>
-          <div className="md:col-span-2">
-            <div className="font-medium">描述</div>
-            <div className="text-muted-foreground">
-              {detail.description || '-'}
-            </div>
-          </div>
-        </div>
 
         {detail.subcommands.length > 0 && (
           <Collapsible defaultOpen>

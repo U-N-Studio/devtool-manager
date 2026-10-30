@@ -111,10 +111,20 @@ export function QuickRunBar() {
           )}
         </div>
       </div>
-      <div className="terminal-input-row flex items-center gap-2 border-t px-2 py-1">
-        <span className="terminal-prompt shrink-0 font-mono text-xs">
-          {detail ? `${detail.name}$` : '(未选择命令)$'}
-        </span>
+      <div className="terminal-input-row flex flex-wrap items-center gap-1.5 border-t px-2 py-1.5">
+        {detail && (
+          <span className="terminal-prompt shrink-0 rounded bg-primary px-1.5 py-0.5 font-mono text-xs font-medium text-primary-foreground">
+            {detail.name}
+          </span>
+        )}
+        {args.trim().split(/\s+/).filter(Boolean).map((token, i) => (
+          <span
+            key={i}
+            className="shrink-0 rounded bg-muted px-1.5 py-0.5 font-mono text-xs"
+          >
+            {token}
+          </span>
+        ))}
         <input
           value={args}
           onChange={(e) => setArgs(e.target.value)}
@@ -122,13 +132,16 @@ export function QuickRunBar() {
             if (e.key === 'Enter' && !isRunning && installed) {
               handleRun()
             }
+            if (e.key === 'Backspace' && args === '') {
+              return
+            }
           }}
           placeholder={
             detail
-              ? '参数（回车运行，输出显示在底部终端）'
+              ? '输入参数后按空格确认…'
               : '请先在左侧选择一个命令'
           }
-          className="terminal-text flex-1 bg-transparent font-mono text-xs placeholder:text-muted-foreground focus:outline-none"
+          className="terminal-text min-w-[120px] flex-1 bg-transparent font-mono text-xs placeholder:text-muted-foreground focus:outline-none"
           disabled={isRunning || !detail || !installed}
           spellCheck={false}
           autoComplete="off"

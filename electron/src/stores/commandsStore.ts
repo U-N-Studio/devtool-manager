@@ -8,6 +8,7 @@ interface CommandsState {
   descriptions: Record<string, string>
   subcommandHelps: Record<string, SubcommandHelp | undefined>
   isLoading: boolean
+  listLoading: boolean
   message: string
   filterInstalled: boolean
   searchTerm: string
@@ -27,22 +28,21 @@ export const useCommandsStore = create<CommandsState>((set, get) => ({
   descriptions: {},
   subcommandHelps: {},
   isLoading: false,
+  listLoading: false,
   message: '',
   filterInstalled: true,
   searchTerm: '',
   runArgs: '',
   setRunArgs: (args) => set({ runArgs: args }),
   refresh: async () => {
-    set({ isLoading: true, message: '' })
+    set({ listLoading: true, message: '' })
     try {
       const r = await rpc('commands.list', {
         installed_only: get().filterInstalled,
       })
-      set({ commandItems: r.items })
+      set({ commandItems: r.items, listLoading: false })
     } catch (e: any) {
-      set({ message: e.message })
-    } finally {
-      set({ isLoading: false })
+      set({ message: e.message, listLoading: false })
     }
   },
   setFilterInstalled: (installed) => {
@@ -54,11 +54,9 @@ export const useCommandsStore = create<CommandsState>((set, get) => ({
     set({ isLoading: true, message: `Loading ${name}...`, runArgs: '' })
     try {
       const detail = await rpc('commands.detail', { name })
-      set({ selectedDetail: detail, message: '' })
+      set({ selectedDetail: detail, message: '', isLoading: false })
     } catch (e: any) {
-      set({ message: e.message })
-    } finally {
-      set({ isLoading: false })
+      set({ message: e.message, isLoading: false })
     }
   },
   getDescription: async (name) => {

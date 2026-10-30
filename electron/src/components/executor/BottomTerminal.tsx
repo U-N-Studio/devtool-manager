@@ -126,31 +126,33 @@ export function BottomTerminal() {
       className="terminal-panel flex flex-col border-t"
       style={{ height: collapsed ? 32 : height }}
     >
-      <div
-        className="terminal-header flex h-8 cursor-row-resize items-center gap-2 border-b px-2"
-        onMouseDown={startResize}
-      >
-        <TerminalSquare className="terminal-muted h-3.5 w-3.5" />
-        <span className="text-xs font-medium">终端</span>
-        {isRunning && (
-          <span className="terminal-muted flex items-center gap-1 text-[10px]">
-            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-green-500" />
-            运行中
-          </span>
-        )}
-        {exitCode !== null && !isRunning && (
-          <Badge
-            variant={exitCode === 0 ? 'default' : 'destructive'}
-            className="text-[10px]"
-          >
-            Exit: {exitCode}
-          </Badge>
-        )}
-        {lastCommand && (
-          <span className="terminal-muted truncate font-mono text-[10px]">
-            {lastCommand}
-          </span>
-        )}
+      <div className="terminal-header flex h-8 items-center gap-2 border-b px-2">
+        <div
+          className="flex flex-1 cursor-row-resize items-center gap-2"
+          onMouseDown={startResize}
+        >
+          <TerminalSquare className="terminal-muted h-3.5 w-3.5" />
+          <span className="text-xs font-medium">终端</span>
+          {isRunning && (
+            <span className="terminal-muted flex items-center gap-1 text-[10px]">
+              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-green-500" />
+              运行中
+            </span>
+          )}
+          {exitCode !== null && !isRunning && (
+            <Badge
+              variant={exitCode === 0 ? 'default' : 'destructive'}
+              className="text-[10px]"
+            >
+              Exit: {exitCode}
+            </Badge>
+          )}
+          {lastCommand && (
+            <span className="terminal-muted truncate font-mono text-[10px]">
+              {lastCommand}
+            </span>
+          )}
+        </div>
         <div className="ml-auto flex items-center gap-0.5">
           <Button
             variant="ghost"
@@ -255,7 +257,7 @@ export function BottomTerminal() {
             )}
           </div>
           <div className="terminal-input-row flex items-center gap-2 border-t px-2 py-1">
-            <span className="terminal-prompt font-mono text-xs">{'>$'}</span>
+            <span className="terminal-prompt font-mono text-xs">{'>'}</span>
             <input
               ref={inputRef}
               value={input}
