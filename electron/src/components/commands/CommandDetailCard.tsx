@@ -78,14 +78,7 @@ export function CommandDetailCard({ detail }: CommandDetailCardProps) {
   }
 
   const handleSubcommandClick = (subName: string) => {
-    const trimmed = args.trim()
-    if (!trimmed) {
-      setArgs(subName)
-    } else if (trimmed.startsWith(subName + ' ')) {
-      return
-    } else {
-      setArgs(`${subName} ${trimmed}`)
-    }
+    setArgs(subName)
   }
 
   const handleParamClick = (flag: string) => {

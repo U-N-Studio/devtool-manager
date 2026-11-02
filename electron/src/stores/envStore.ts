@@ -1,9 +1,8 @@
 import { create } from 'zustand'
 import { rpc } from '@/lib/ipc'
-import type { EnvItem, PythonInfo, ToolInfo } from '@/lib/types'
+import type { EnvItem, ToolInfo } from '@/lib/types'
 
 interface EnvState {
-  pythonInfo: PythonInfo | null
   /** 分类 -> 条目列表(后端返回的 categorized map) */
   categorizedItems: Record<string, EnvItem[]>
   /** 当前选中分类对应的扁平条目列表(派生) */
@@ -13,7 +12,6 @@ interface EnvState {
   isLoading: boolean
   message: string
   refresh: () => Promise<void>
-  refreshPythonInfo: () => Promise<void>
   refreshToolInfo: (category: string) => Promise<void>
   setCategory: (category: string) => void
   setVar: (
@@ -55,7 +53,6 @@ function flattenByCategory(
 }
 
 export const useEnvStore = create<EnvState>((set, get) => ({
-  pythonInfo: null,
   categorizedItems: {},
   envItems: [],
   toolInfo: null,
@@ -74,14 +71,6 @@ export const useEnvStore = create<EnvState>((set, get) => ({
       set({ message: e instanceof Error ? e.message : String(e) })
     } finally {
       set({ isLoading: false })
-    }
-  },
-
-  refreshPythonInfo: async () => {
-    try {
-      set({ pythonInfo: await rpc('env.python_info', {}) })
-    } catch (e: unknown) {
-      set({ message: e instanceof Error ? e.message : String(e) })
     }
   },
 

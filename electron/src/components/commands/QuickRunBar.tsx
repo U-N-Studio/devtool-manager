@@ -117,14 +117,6 @@ export function QuickRunBar() {
             {detail.name}
           </span>
         )}
-        {args.trim().split(/\s+/).filter(Boolean).map((token, i) => (
-          <span
-            key={i}
-            className="shrink-0 rounded bg-muted px-1.5 py-0.5 font-mono text-xs"
-          >
-            {token}
-          </span>
-        ))}
         <input
           value={args}
           onChange={(e) => setArgs(e.target.value)}

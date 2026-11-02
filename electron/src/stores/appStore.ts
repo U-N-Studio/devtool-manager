@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 
-export type TabId = 'commands' | 'env' | 'packages'
+export type TabId = 'commands' | 'env'
 export type ThemeMode = 'light' | 'dark'
 
 interface AppState {

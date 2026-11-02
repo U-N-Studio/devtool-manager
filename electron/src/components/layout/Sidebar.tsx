@@ -1,6 +1,5 @@
 import {
   Settings2,
-  Package,
   Cpu,
   type LucideIcon,
 } from 'lucide-react'
@@ -16,7 +15,6 @@ interface NavItemDef {
 const NAV_ITEMS: NavItemDef[] = [
   { id: 'commands', label: '命令详情', icon: Cpu },
   { id: 'env', label: '环境变量', icon: Settings2 },
-  { id: 'packages', label: 'Python 包', icon: Package },
 ]
 
 export function Sidebar() {

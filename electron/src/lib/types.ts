@@ -27,13 +27,6 @@ export interface EnvItem {
   is_path_entry?: boolean
 }
 
-export interface PythonInfo {
-  version: string
-  pip: string
-  platform: string
-  executable: string
-}
-
 export interface ToolInfoDetail {
   label: string
   value: string
@@ -47,15 +40,6 @@ export interface ToolInfo {
   sdk?: string | null
   ndk?: string | null
   details: ToolInfoDetail[]
-}
-
-export interface PackageItem {
-  name: string
-  version: string
-  installed: boolean
-  func_tag: string
-  lang_tag: string
-  install_tag?: string
 }
 
 export interface CommandParam {
@@ -125,16 +109,12 @@ export interface CommandDetail {
 export type RpcMethod =
   | 'ping'
   | 'env.list'
-  | 'env.python_info'
   | 'env.set_var'
   | 'env.delete_var'
   | 'env.add_path_entry'
   | 'env.delete_path_entry'
   | 'env.get_raw_path'
   | 'tools.info'
-  | 'packages.list'
-  | 'packages.install'
-  | 'packages.uninstall'
   | 'commands.list'
   | 'commands.detail'
   | 'commands.description'
@@ -156,16 +136,12 @@ export type NotificationMethod = 'ready' | 'executor.output' | 'executor.done' |
 export interface RpcParamsMap {
   ping: Record<string, never>
   'env.list': Record<string, never>
-  'env.python_info': Record<string, never>
   'env.set_var': { name: string; value: string; source?: 'system' | 'user' }
   'env.delete_var': { name: string; source?: 'system' | 'user' }
   'env.add_path_entry': { value: string; source?: 'system' | 'user' }
   'env.delete_path_entry': { value: string; source?: 'system' | 'user' }
   'env.get_raw_path': { source?: 'system' | 'user' }
   'tools.info': { category: string }
-  'packages.list': { func?: string; lang?: string; install?: string }
-  'packages.install': { name: string }
-  'packages.uninstall': { name: string }
   'commands.list': { installed_only?: boolean }
   'commands.detail': { name: string }
   'commands.description': { name: string }
@@ -190,16 +166,12 @@ export interface RpcParamsMap {
 export interface RpcResultMap {
   ping: { pong: boolean }
   'env.list': { items: Record<string, EnvItem[]> }
-  'env.python_info': PythonInfo
   'env.set_var': { ok: boolean }
   'env.delete_var': { ok: boolean }
   'env.add_path_entry': { ok: boolean }
   'env.delete_path_entry': { ok: boolean }
   'env.get_raw_path': { value: string }
   'tools.info': ToolInfo
-  'packages.list': { items: PackageItem[] }
-  'packages.install': { ok: boolean; output: string }
-  'packages.uninstall': { ok: boolean; output: string }
   'commands.list': { items: { name: string; installed: boolean }[] }
   'commands.detail': CommandDetail
   'commands.description': { text: string }
