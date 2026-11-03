@@ -214,17 +214,13 @@ export function CommandsTab() {
                             handleClick(item.name)
                           }
                         }}
-                        draggable={draggable}
-                        onDragStart={(e) => {
-                          e.dataTransfer.setData('text/plain', item.name)
-                          e.dataTransfer.effectAllowed = 'move'
-                        }}
                         onDragOver={(e) => {
                           if (!draggable) return
                           e.preventDefault()
                           e.dataTransfer.dropEffect = 'move'
                         }}
                         onDrop={(e) => {
+                          if (!draggable) return
                           e.preventDefault()
                           const from = e.dataTransfer.getData('text/plain')
                           if (from && from !== item.name) {
@@ -234,7 +230,6 @@ export function CommandsTab() {
                         className={cn(
                           'flex w-full cursor-pointer items-center gap-2 px-3 py-1.5 text-left font-mono text-sm hover:bg-accent',
                           active && 'bg-accent text-accent-foreground',
-                          draggable && 'cursor-grab active:cursor-grabbing',
                         )}
                       >
                         <span
@@ -247,7 +242,17 @@ export function CommandsTab() {
                           {highlightMatch(item.name, searchTerm)}
                         </span>
                         {draggable && (
-                          <span className="ml-auto text-muted-foreground/60">
+                          <span
+                            draggable
+                            onDragStart={(e) => {
+                              e.dataTransfer.setData('text/plain', item.name)
+                              e.dataTransfer.effectAllowed = 'move'
+                              e.stopPropagation()
+                            }}
+                            onClick={(e) => e.stopPropagation()}
+                            className="ml-auto cursor-grab text-muted-foreground/60 active:cursor-grabbing hover:text-foreground"
+                            title="拖拽排序"
+                          >
                             <GripVertical className="h-3 w-3" />
                           </span>
                         )}
