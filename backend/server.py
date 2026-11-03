@@ -1,7 +1,7 @@
 """DevTool Manager Python RPC backend.
 
 通过 stdio 与 Electron 主进程通信,使用 newline-delimited JSON-RPC 2.0 协议。
-复用 main/src/core/ 的业务逻辑,仅在此层做 RPC 适配。
+复用 backend/src/core/ 的业务逻辑,仅在此层做 RPC 适配。
 """
 
 import sys
@@ -16,20 +16,20 @@ if sys.platform == "win32":
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     sys.stderr.reconfigure(encoding="utf-8", errors="replace")
 
-# main/ 父目录上 sys.path,使 `from src.core... import` 可解析(main/src/__init__.py 即 src 包)
-# 开发态: backend/server.py -> ../main (即 main/ 父目录, main/src/__init__.py 即 src 包)
-# 冻结态(PyInstaller): --add-data "main/src;src" 将内容放在 <MEIPASS>/src/, 故 sys.path 需 <MEIPASS>
-def _resolve_main_parent():
+# backend/ 上 sys.path,使 `from src.core... import` 可解析(backend/src/__init__.py 即 src 包)
+# 开发态: backend/server.py -> backend 父目录, backend/src/__init__.py 即 src 包
+# 冻结态(PyInstaller): --add-data "src;src" 将内容放在 <MEIPASS>/src/, 故 sys.path 需 <MEIPASS>
+def _resolve_src_parent():
     if getattr(sys, "frozen", False):
         meipass = getattr(sys, "_MEIPASS", None)
         if meipass:
             return meipass
-    return os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "main"))
+    return os.path.abspath(os.path.dirname(__file__))
 
 
-_MAIN_PARENT = _resolve_main_parent()
-if _MAIN_PARENT not in sys.path:
-    sys.path.insert(0, _MAIN_PARENT)
+_SRC_PARENT = _resolve_src_parent()
+if _SRC_PARENT not in sys.path:
+    sys.path.insert(0, _SRC_PARENT)
 
 from rpc_handlers import HANDLERS, handle_executor_execute  # noqa: E402
 
