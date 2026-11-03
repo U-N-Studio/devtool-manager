@@ -75,7 +75,7 @@
     @apply border-border bg-muted;
   }
   .terminal-prompt {
-    @apply text-green-600 dark:text-green-400;
+    @apply text-foreground;
   }
   .terminal-text {
     @apply text-foreground;

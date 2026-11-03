@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { RefreshCw, Search, Terminal, Clock, Star } from 'lucide-react'
+import { RefreshCw, Search, Terminal, Clock, Star, ArrowDownAZ, ListRestart, GripVertical } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
@@ -27,6 +27,10 @@ export function CommandsTab() {
     message,
     filterInstalled,
     searchTerm,
+    sortMode,
+    customOrder,
+    setSortMode,
+    moveCommand,
     refresh,
     setFilterInstalled,
     setSearchTerm,
@@ -50,14 +54,26 @@ export function CommandsTab() {
   }, [loadHistory, loadFavorites])
 
   const filteredItems = useMemo(() => {
-    if (!searchTerm) return commandItems
+    let items = [...commandItems]
+    if (sortMode === 'alpha') {
+      items.sort((a, b) => a.name.localeCompare(b.name))
+    } else if (sortMode === 'custom') {
+      const order = customOrder.length ? customOrder : commandItems.map((c) => c.name)
+      const map = new Map(commandItems.map((c) => [c.name, c]))
+      items = order
+        .filter((n) => map.has(n))
+        .map((n) => map.get(n)!)
+      const known = new Set(order)
+      items.push(...commandItems.filter((c) => !known.has(c.name)))
+    }
+    if (!searchTerm) return items
     const q = searchTerm.toLowerCase()
-    return commandItems.filter(
+    return items.filter(
       (c) =>
         c.name.toLowerCase().includes(q) ||
         (selectedDetail?.name === c.name && selectedDetail.description?.toLowerCase().includes(q)),
     )
-  }, [commandItems, searchTerm, selectedDetail])
+  }, [commandItems, searchTerm, selectedDetail, sortMode, customOrder])
 
   const handleClick = (name: string) => {
     selectCommand(name)
@@ -121,14 +137,53 @@ export function CommandsTab() {
                 <Button
                   variant="outline"
                   size="icon"
+                  className="h-6 w-6"
                   onClick={refresh}
                   disabled={isLoading}
                   title="刷新"
                 >
                   <RefreshCw
-                    className={cn('h-4 w-4', isLoading && 'animate-spin')}
+                    className={cn('h-3 w-3', isLoading && 'animate-spin')}
                   />
                 </Button>
+                <div className="flex items-center gap-0.5 rounded-md border border-border p-0.5">
+                  <button
+                    onClick={() => setSortMode('default')}
+                    title="默认排序"
+                    className={cn(
+                      'flex h-5 w-5 items-center justify-center rounded',
+                      sortMode === 'default'
+                        ? 'bg-primary text-primary-foreground'
+                        : 'text-muted-foreground hover:text-foreground',
+                    )}
+                  >
+                    <ListRestart className="h-3 w-3" />
+                  </button>
+                  <button
+                    onClick={() => setSortMode('alpha')}
+                    title="字母排序"
+                    className={cn(
+                      'flex h-5 w-5 items-center justify-center rounded',
+                      sortMode === 'alpha'
+                        ? 'bg-primary text-primary-foreground'
+                        : 'text-muted-foreground hover:text-foreground',
+                    )}
+                  >
+                    <ArrowDownAZ className="h-3 w-3" />
+                  </button>
+                  <button
+                    onClick={() => setSortMode('custom')}
+                    title="自定义排序（拖拽调整）"
+                    className={cn(
+                      'flex h-5 w-5 items-center justify-center rounded',
+                      sortMode === 'custom'
+                        ? 'bg-primary text-primary-foreground'
+                        : 'text-muted-foreground hover:text-foreground',
+                    )}
+                  >
+                    <GripVertical className="h-3 w-3" />
+                  </button>
+                </div>
                 <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
                   <Checkbox
                     checked={filterInstalled}
@@ -147,13 +202,39 @@ export function CommandsTab() {
                 ) : (
                   filteredItems.map((item) => {
                     const active = selectedDetail?.name === item.name
+                    const draggable = sortMode === 'custom'
                     return (
-                      <button
+                      <div
                         key={item.name}
+                        role="button"
+                        tabIndex={0}
                         onClick={() => handleClick(item.name)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            handleClick(item.name)
+                          }
+                        }}
+                        draggable={draggable}
+                        onDragStart={(e) => {
+                          e.dataTransfer.setData('text/plain', item.name)
+                          e.dataTransfer.effectAllowed = 'move'
+                        }}
+                        onDragOver={(e) => {
+                          if (!draggable) return
+                          e.preventDefault()
+                          e.dataTransfer.dropEffect = 'move'
+                        }}
+                        onDrop={(e) => {
+                          e.preventDefault()
+                          const from = e.dataTransfer.getData('text/plain')
+                          if (from && from !== item.name) {
+                            moveCommand(from, item.name)
+                          }
+                        }}
                         className={cn(
-                          'flex w-full items-center gap-2 px-3 py-1.5 text-left font-mono text-sm hover:bg-accent',
+                          'flex w-full cursor-pointer items-center gap-2 px-3 py-1.5 text-left font-mono text-sm hover:bg-accent',
                           active && 'bg-accent text-accent-foreground',
+                          draggable && 'cursor-grab active:cursor-grabbing',
                         )}
                       >
                         <span
@@ -165,7 +246,12 @@ export function CommandsTab() {
                         <span className={cn(!item.installed && 'text-muted-foreground')}>
                           {highlightMatch(item.name, searchTerm)}
                         </span>
-                      </button>
+                        {draggable && (
+                          <span className="ml-auto text-muted-foreground/60">
+                            <GripVertical className="h-3 w-3" />
+                          </span>
+                        )}
+                      </div>
                     )
                   })
                 )}

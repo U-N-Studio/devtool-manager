@@ -42,6 +42,7 @@ export function CommandDetailCard({ detail }: CommandDetailCardProps) {
   const [expandedSubs, setExpandedSubs] = useState<Set<string>>(new Set())
   const [subHelps, setSubHelps] = useState<Record<string, SubcommandHelp | undefined>>({})
   const [loadingSubs, setLoadingSubs] = useState<Set<string>>(new Set())
+  const [showInfo, setShowInfo] = useState(false)
 
   useEffect(() => {
     setExpandedSubs(new Set())
@@ -130,37 +131,14 @@ export function CommandDetailCard({ detail }: CommandDetailCardProps) {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-7 w-7 text-muted-foreground"
+                  className={`h-7 w-7 text-muted-foreground ${showInfo ? 'bg-accent text-foreground' : ''}`}
+                  onClick={() => setShowInfo((v) => !v)}
                   title="基本信息"
                 >
                   <Info className="h-4 w-4" />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent className="max-w-md">
-                <div className="space-y-1 text-xs">
-                  {detail.version && (
-                    <div>
-                      <span className="font-medium">版本: </span>
-                      <span className="font-mono">{detail.version}</span>
-                    </div>
-                  )}
-                  {detail.path && (
-                    <div>
-                      <span className="font-medium">路径: </span>
-                      <span className="break-all font-mono">{detail.path}</span>
-                    </div>
-                  )}
-                  {detail.description && (
-                    <div>
-                      <span className="font-medium">描述: </span>
-                      <span>{detail.description}</span>
-                    </div>
-                  )}
-                  {!detail.version && !detail.path && !detail.description && (
-                    <span>无附加信息</span>
-                  )}
-                </div>
-              </TooltipContent>
+              <TooltipContent>基本信息</TooltipContent>
             </Tooltip>
           </TooltipProvider>
           <TooltipProvider>
@@ -184,6 +162,33 @@ export function CommandDetailCard({ detail }: CommandDetailCardProps) {
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
+        {showInfo && (
+          <div className="rounded-md border border-border bg-muted/50 p-3 text-xs">
+            <div className="space-y-1.5">
+              {detail.version && (
+                <div>
+                  <span className="font-medium">版本: </span>
+                  <span className="font-mono">{detail.version}</span>
+                </div>
+              )}
+              {detail.path && (
+                <div>
+                  <span className="font-medium">路径: </span>
+                  <span className="break-all font-mono">{detail.path}</span>
+                </div>
+              )}
+              {detail.description && (
+                <div>
+                  <span className="font-medium">描述: </span>
+                  <span>{detail.description}</span>
+                </div>
+              )}
+              {!detail.version && !detail.path && !detail.description && (
+                <span>无附加信息</span>
+              )}
+            </div>
+          </div>
+        )}
 
         {detail.subcommands.length > 0 && (
           <Collapsible defaultOpen>

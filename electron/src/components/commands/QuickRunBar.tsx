@@ -21,6 +21,10 @@ export function QuickRunBar() {
   const detail = selectedDetail
   const installed = detail?.installed ?? false
 
+  const parts = args.trim().split(/\s+/).filter(Boolean)
+  const subcommand = parts.length > 0 ? parts[0] : null
+  const restArgs = parts.slice(1).join(' ')
+
   const fullCommand = detail
     ? args.trim()
       ? `${detail.name} ${args.trim()}`
@@ -117,20 +121,27 @@ export function QuickRunBar() {
             {detail.name}
           </span>
         )}
+        {subcommand && (
+          <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 font-mono text-xs text-foreground">
+            {subcommand}
+          </span>
+        )}
         <input
-          value={args}
-          onChange={(e) => setArgs(e.target.value)}
+          value={restArgs}
+          onChange={(e) => {
+            const v = e.target.value
+            setArgs(subcommand ? `${subcommand} ${v}`.trim() : v)
+          }}
           onKeyDown={(e) => {
             if (e.key === 'Enter' && !isRunning && installed) {
               handleRun()
             }
-            if (e.key === 'Backspace' && args === '') {
-              return
-            }
           }}
           placeholder={
             detail
-              ? '输入参数后按空格确认…'
+              ? subcommand
+                ? '输入参数…'
+                : '选择子命令，或输入参数…'
               : '请先在左侧选择一个命令'
           }
           className="terminal-text min-w-[120px] flex-1 bg-transparent font-mono text-xs placeholder:text-muted-foreground focus:outline-none"
