@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { rpc } from '@/lib/ipc'
+import { api } from '@/api'
 import type { CommandDetail, SubcommandHelp } from '@/lib/types'
 
 export type CommandSortMode = 'default' | 'alpha' | 'custom'
@@ -86,13 +86,11 @@ export const useCommandsStore = create<CommandsState>((set, get) => ({
   refresh: async () => {
     set({ listLoading: true, message: '' })
     try {
-      const r = await rpc('commands.list', {
-        installed_only: get().filterInstalled,
-      })
-      set({ commandItems: r.items, listLoading: false })
+      const items = await api.commands.list(get().filterInstalled)
+      set({ commandItems: items, listLoading: false })
       const { sortMode, customOrder } = get()
       if (sortMode === 'custom') {
-        const names = r.items.map((c) => c.name)
+        const names = items.map((c) => c.name)
         const merged = [...customOrder]
         for (const n of names) {
           if (!merged.includes(n)) merged.push(n)
@@ -118,7 +116,7 @@ export const useCommandsStore = create<CommandsState>((set, get) => ({
   selectCommand: async (name) => {
     set({ isLoading: true, message: `Loading ${name}...`, runArgs: '' })
     try {
-      const detail = await rpc('commands.detail', { name })
+      const detail = await api.commands.detail(name)
       set({ selectedDetail: detail, message: '', isLoading: false })
     } catch (e: any) {
       set({ message: e.message, isLoading: false })
@@ -128,9 +126,9 @@ export const useCommandsStore = create<CommandsState>((set, get) => ({
     const cached = get().descriptions[name]
     if (cached) return cached
     try {
-      const r = await rpc('commands.description', { name })
-      set({ descriptions: { ...get().descriptions, [name]: r.text } })
-      return r.text
+      const text = await api.commands.description(name)
+      set({ descriptions: { ...get().descriptions, [name]: text } })
+      return text
     } catch {
       return ''
     }
@@ -140,9 +138,9 @@ export const useCommandsStore = create<CommandsState>((set, get) => ({
     const cached = get().subcommandHelps[key]
     if (cached !== undefined) return cached
     try {
-      const r = await rpc('commands.subcommand_help', { command, subcommand })
-      set({ subcommandHelps: { ...get().subcommandHelps, [key]: r } })
-      return r
+      const help = await api.commands.subcommandHelp(command, subcommand)
+      set({ subcommandHelps: { ...get().subcommandHelps, [key]: help } })
+      return help
     } catch {
       return undefined
     }

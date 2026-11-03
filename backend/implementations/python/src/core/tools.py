@@ -11,6 +11,7 @@ import shutil
 
 
 def _run_version_cmd(args, timeout=5):
+    """执行版本探测命令,合并 stdout/stderr 并去空白;失败返回 None。"""
     try:
         result = subprocess.run(
             args, capture_output=True, text=True, timeout=timeout,
@@ -27,6 +28,7 @@ def _find_executable(name):
 
 
 def get_java_info():
+    """探测 Java 工具链:版本、JAVA_HOME、javac/jar 编译器信息。"""
     info = {"installed": False, "version": None, "home": None, "compiler": None, "details": []}
 
     java_home = os.environ.get("JAVA_HOME")
@@ -55,6 +57,7 @@ def get_java_info():
 
 
 def get_python_info():
+    """探测 Python 工具链:当前解释器版本、pip/conda/poetry/uv 详情。"""
     info = {"installed": False, "version": None, "home": None, "details": []}
 
     info["version"] = sys.version
@@ -77,6 +80,7 @@ def get_python_info():
 
 
 def get_android_info():
+    """探测 Android 工具链:SDK/NDK 路径、adb 与 gradle 版本。"""
     info = {"installed": False, "sdk": None, "ndk": None, "details": []}
 
     sdk = os.environ.get("ANDROID_HOME") or os.environ.get("ANDROID_SDK_ROOT")
@@ -110,6 +114,7 @@ def get_android_info():
 
 
 def get_node_info():
+    """探测 Node.js 工具链:node/npm/yarn/pnpm/bun 版本。"""
     info = {"installed": False, "version": None, "home": None, "details": []}
 
     output = _run_version_cmd(["node", "--version"])
@@ -133,6 +138,7 @@ def get_node_info():
 
 
 def get_go_info():
+    """探测 Go 工具链:go 版本、GOROOT/GOPATH。"""
     info = {"installed": False, "version": None, "home": None, "details": []}
 
     output = _run_version_cmd(["go", "version"])
@@ -154,6 +160,7 @@ def get_go_info():
 
 
 def get_rust_info():
+    """探测 Rust 工具链:rustc/cargo/rustup 版本。"""
     info = {"installed": False, "version": None, "home": None, "details": []}
 
     output = _run_version_cmd(["rustc", "--version"])
@@ -174,6 +181,7 @@ def get_rust_info():
     return info
 
 
+# 语言分类 -> 探测函数 的映射表
 TOOL_INFO_FUNCS = {
     "Java": get_java_info,
     "Python": get_python_info,

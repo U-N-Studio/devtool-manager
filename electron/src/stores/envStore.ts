@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { rpc } from '@/lib/ipc'
+import { api } from '@/api'
 import type { EnvItem, ToolInfo } from '@/lib/types'
 
 interface EnvState {
@@ -63,8 +63,7 @@ export const useEnvStore = create<EnvState>((set, get) => ({
   refresh: async () => {
     set({ isLoading: true, message: '' })
     try {
-      const r = await rpc('env.list', {})
-      const categorized = r.items as Record<string, EnvItem[]>
+      const categorized = await api.env.list()
       const envItems = flattenByCategory(categorized, get().selectedCategory)
       set({ categorizedItems: categorized, envItems })
     } catch (e: unknown) {
@@ -77,7 +76,7 @@ export const useEnvStore = create<EnvState>((set, get) => ({
   refreshToolInfo: async (category) => {
     set({ isLoading: true })
     try {
-      set({ toolInfo: await rpc('tools.info', { category }) })
+      set({ toolInfo: await api.tools.info(category) })
     } catch (e: unknown) {
       set({ message: e instanceof Error ? e.message : String(e) })
     } finally {
@@ -95,10 +94,10 @@ export const useEnvStore = create<EnvState>((set, get) => ({
   setVar: async (name, value, source) => {
     set({ isLoading: true, message: `Setting ${name}...` })
     try {
-      const r = await rpc('env.set_var', { name, value, source })
+      const ok = await api.env.setVar(name, value, source)
       await get().refresh()
-      set({ message: r.ok ? `OK: ${name} set` : `Failed: ${name}` })
-      return r.ok
+      set({ message: ok ? `OK: ${name} set` : `Failed: ${name}` })
+      return ok
     } catch (e: unknown) {
       set({ message: e instanceof Error ? e.message : String(e) })
       return false
@@ -110,10 +109,10 @@ export const useEnvStore = create<EnvState>((set, get) => ({
   deleteVar: async (name, source) => {
     set({ isLoading: true, message: `Deleting ${name}...` })
     try {
-      const r = await rpc('env.delete_var', { name, source })
+      const ok = await api.env.deleteVar(name, source)
       await get().refresh()
-      set({ message: r.ok ? `OK: ${name} deleted` : `Failed: ${name}` })
-      return r.ok
+      set({ message: ok ? `OK: ${name} deleted` : `Failed: ${name}` })
+      return ok
     } catch (e: unknown) {
       set({ message: e instanceof Error ? e.message : String(e) })
       return false
@@ -125,10 +124,10 @@ export const useEnvStore = create<EnvState>((set, get) => ({
   addPathEntry: async (value, source) => {
     set({ isLoading: true, message: `Adding to PATH: ${value}...` })
     try {
-      const r = await rpc('env.add_path_entry', { value, source })
+      const ok = await api.env.addPathEntry(value, source)
       await get().refresh()
-      set({ message: r.ok ? 'OK: added to PATH' : 'Failed' })
-      return r.ok
+      set({ message: ok ? 'OK: added to PATH' : 'Failed' })
+      return ok
     } catch (e: unknown) {
       set({ message: e instanceof Error ? e.message : String(e) })
       return false
@@ -140,10 +139,10 @@ export const useEnvStore = create<EnvState>((set, get) => ({
   deletePathEntry: async (value, source) => {
     set({ isLoading: true, message: `Removing from PATH: ${value}...` })
     try {
-      const r = await rpc('env.delete_path_entry', { value, source })
+      const ok = await api.env.deletePathEntry(value, source)
       await get().refresh()
-      set({ message: r.ok ? 'OK: removed from PATH' : 'Failed' })
-      return r.ok
+      set({ message: ok ? 'OK: removed from PATH' : 'Failed' })
+      return ok
     } catch (e: unknown) {
       set({ message: e instanceof Error ? e.message : String(e) })
       return false

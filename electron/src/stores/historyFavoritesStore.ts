@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { rpc } from '@/lib/ipc'
+import { api } from '@/api'
 import type { HistoryEntry, FavoriteEntry } from '@/lib/types'
 
 interface HistoryFavoritesState {
@@ -22,23 +22,23 @@ export const useHistoryFavoritesStore = create<HistoryFavoritesState>((set, get)
   isLoading: false,
   loadHistory: async () => {
     try {
-      const r = await rpc('history.list')
-      set({ history: r.items })
+      const items = await api.history.list()
+      set({ history: items })
     } catch {
       /* ignore */
     }
   },
   loadFavorites: async () => {
     try {
-      const r = await rpc('favorites.list')
-      set({ favorites: r.items })
+      const items = await api.favorites.list()
+      set({ favorites: items })
     } catch {
       /* ignore */
     }
   },
   addHistory: async (command, exitCode) => {
     try {
-      await rpc('history.add', { command, exitCode })
+      await api.history.add(command, exitCode)
       await get().loadHistory()
     } catch {
       /* ignore */
@@ -46,7 +46,7 @@ export const useHistoryFavoritesStore = create<HistoryFavoritesState>((set, get)
   },
   clearHistory: async () => {
     try {
-      await rpc('history.clear')
+      await api.history.clear()
       set({ history: [] })
     } catch {
       /* ignore */
@@ -54,7 +54,7 @@ export const useHistoryFavoritesStore = create<HistoryFavoritesState>((set, get)
   },
   deleteHistory: async (id) => {
     try {
-      await rpc('history.delete', { id })
+      await api.history.delete(id)
       await get().loadHistory()
     } catch {
       /* ignore */
@@ -62,7 +62,7 @@ export const useHistoryFavoritesStore = create<HistoryFavoritesState>((set, get)
   },
   addFavorite: async (command, label) => {
     try {
-      await rpc('favorites.add', { command, label })
+      await api.favorites.add(command, label)
       await get().loadFavorites()
     } catch {
       /* ignore */
@@ -70,7 +70,7 @@ export const useHistoryFavoritesStore = create<HistoryFavoritesState>((set, get)
   },
   removeFavorite: async (command) => {
     try {
-      await rpc('favorites.remove', { command })
+      await api.favorites.remove(command)
       await get().loadFavorites()
     } catch {
       /* ignore */

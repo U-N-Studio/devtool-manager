@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { rpc, onNotification } from '@/lib/ipc'
+import { api } from '@/api'
 import { useHistoryFavoritesStore } from '@/stores/historyFavoritesStore'
 
 interface ExecutorState {
@@ -42,8 +42,8 @@ export const useExecutorStore = create<ExecutorState>((set, get) => ({
       historyIndex: -1,
     }))
     try {
-      const r = await rpc('executor.execute', { command, cwd })
-      set({ sessionId: r.sessionId })
+      const sessionId = await api.executor.execute(command, cwd)
+      set({ sessionId })
     } catch (e: any) {
       set((s) => ({
         output: s.output + `Error: ${e.message}\n`,
@@ -55,7 +55,7 @@ export const useExecutorStore = create<ExecutorState>((set, get) => ({
     const sid = get().sessionId
     if (!sid) return
     try {
-      await rpc('executor.kill', { sessionId: sid })
+      await api.executor.kill(sid)
     } catch {
       /* 忽略 */
     }
@@ -79,8 +79,7 @@ export const useExecutorStore = create<ExecutorState>((set, get) => ({
     return newIdx === -1 ? '' : history[newIdx]
   },
   initSubscriptions: () => {
-    const unsubOutput = onNotification(
-      'executor.output',
+    const unsubOutput = api.notifications.onOutput(
       ({ sessionId, line }) => {
         if (sessionId !== get().sessionId) return
         set((s) => {
@@ -93,8 +92,7 @@ export const useExecutorStore = create<ExecutorState>((set, get) => ({
         })
       },
     )
-    const unsubDone = onNotification(
-      'executor.done',
+    const unsubDone = api.notifications.onDone(
       ({ sessionId, exitCode }) => {
         if (sessionId !== get().sessionId) return
         const cmd = get().lastCommand

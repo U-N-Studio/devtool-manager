@@ -18,7 +18,9 @@ export class PythonBridge extends EventEmitter {
 
   async start(): Promise<void> {
     const isDev = !app.isPackaged && process.env.NODE_ENV === 'development'
-    const args = isDev ? [path.resolve(__dirname, '../../backend/server.py')] : []
+    const args = isDev
+      ? [path.resolve(__dirname, '../../backend/implementations/python/server.py')]
+      : []
     const command = app.isPackaged
       ? path.join(process.resourcesPath, 'backend', 'devtool-backend.exe')
       : 'python'

@@ -14,10 +14,13 @@ from src.utils.python_finder import get_python_executable
 
 _SUBPROCESS_FLAGS = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
 
+# Windows 注册表环境变量存储位置:HKLM 为系统级,HKCU 为用户级
 _HKLM_ENV = r"SYSTEM\CurrentControlSet\Control\Session Manager\Environment"
 _HKCU_ENV = r"Environment"
+# 修改环境变量后广播 WM_SETTINGCHANGE 消息,让新进程感知变更
 _WM_SETTINGCHANGE = 0x001A
 
+# 按语言/平台分类的常见环境变量清单,用于 UI 分组展示
 ENV_CATEGORIES = {
     "Java": [
         "JAVA_HOME", "JRE_HOME", "JDK_HOME", "CLASSPATH",
@@ -125,6 +128,7 @@ def get_all_env_vars():
 
 
 def _read_registry_vars(hive, key_path):
+    """读取注册表中某 hive/路径下的全部环境变量,键统一转为大写。"""
     result = {}
     try:
         with winreg.OpenKey(hive, key_path, 0, winreg.KEY_READ | winreg.KEY_WOW64_64KEY) as key:
@@ -143,12 +147,14 @@ def _read_registry_vars(hive, key_path):
 
 
 def get_system_and_user_env_vars():
+    """分别读取系统级(HKLM)与用户级(HKCU)注册表环境变量。"""
     system_vars = _read_registry_vars(winreg.HKEY_LOCAL_MACHINE, _HKLM_ENV)
     user_vars = _read_registry_vars(winreg.HKEY_CURRENT_USER, _HKCU_ENV)
     return system_vars, user_vars
 
 
 def _broadcast_env_change():
+    """广播 WM_SETTINGCHANGE,通知资源管理器/新进程环境已变更。"""
     try:
         ctypes.windll.user32.SendMessageTimeoutW(0xFFFF, _WM_SETTINGCHANGE, 0, "Environment", 0x0002, 5000, None)
     except Exception:
@@ -156,6 +162,10 @@ def _broadcast_env_change():
 
 
 def set_env_var(name: str, value: str, source: str = "user"):
+    """设置环境变量:写入注册表 + 更新当前进程环境 + 广播变更消息。
+
+    source 为 "system" 时写 HKLM(系统级),否则写 HKCU(用户级)。
+    """
     if source == "system":
         hive = winreg.HKEY_LOCAL_MACHINE
         key_path = _HKLM_ENV
@@ -171,6 +181,7 @@ def set_env_var(name: str, value: str, source: str = "user"):
 
 
 def delete_env_var(name: str, source: str = "user"):
+    """删除环境变量:从注册表移除 + 更新当前进程环境 + 广播变更消息。"""
     if source == "system":
         hive = winreg.HKEY_LOCAL_MACHINE
         key_path = _HKLM_ENV
@@ -186,6 +197,7 @@ def delete_env_var(name: str, source: str = "user"):
 
 
 def classify_env_var(name, system_vars, user_vars):
+    """判断变量来源:注册表 user 键中存在归为 user,否则归为 system。"""
     upper = name.upper()
     if upper in system_vars:
         return "system"
@@ -195,6 +207,7 @@ def classify_env_var(name, system_vars, user_vars):
 
 
 def get_categorized_env_vars():
+    """组装全部分类环境变量:按 ENV_CATEGORIES 分类,追加 PATH 条目与其他未分类变量。"""
     all_vars = get_all_env_vars()
     system_vars, user_vars = get_system_and_user_env_vars()
 
@@ -246,6 +259,7 @@ def get_categorized_env_vars():
 
 
 def _get_path_entries(all_vars, system_vars, user_vars):
+    """把 PATH 按分号拆成单个条目列表(供按语言关键字归类)。"""
     path_value = all_vars.get("PATH", "")
     source = classify_env_var("PATH", system_vars, user_vars)
     entries = [e.strip() for e in path_value.split(";") if e.strip()]
@@ -253,6 +267,7 @@ def _get_path_entries(all_vars, system_vars, user_vars):
 
 
 def _classify_path_entries(path_entries):
+    """根据路径文本中的语言关键字,把 PATH 条目归类到对应分类下。"""
     result = {}
     for entry in path_entries:
         path_lower = entry["value"].lower()

@@ -1,7 +1,7 @@
-"""DevTool Manager Python RPC backend.
+"""DevTool Manager Python RPC backend 实现。
 
 通过 stdio 与 Electron 主进程通信,使用 newline-delimited JSON-RPC 2.0 协议。
-复用 backend/src/core/ 的业务逻辑,仅在此层做 RPC 适配。
+协议定义见 backend/protocol/schema.json,业务逻辑在实现目录的 src/core/ 下。
 """
 
 import sys
@@ -16,8 +16,8 @@ if sys.platform == "win32":
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     sys.stderr.reconfigure(encoding="utf-8", errors="replace")
 
-# backend/ 上 sys.path,使 `from src.core... import` 可解析(backend/src/__init__.py 即 src 包)
-# 开发态: backend/server.py -> backend 父目录, backend/src/__init__.py 即 src 包
+# 实现目录上 sys.path,使 `from src.core... import` 可解析(本目录下 src/__init__.py 即 src 包)
+# 开发态: implementations/python/server.py -> 同目录, src/__init__.py 即 src 包
 # 冻结态(PyInstaller): --add-data "src;src" 将内容放在 <MEIPASS>/src/, 故 sys.path 需 <MEIPASS>
 def _resolve_src_parent():
     if getattr(sys, "frozen", False):
@@ -32,6 +32,7 @@ if _SRC_PARENT not in sys.path:
     sys.path.insert(0, _SRC_PARENT)
 
 from rpc_handlers import HANDLERS, handle_executor_execute  # noqa: E402
+from protocol import is_known_method  # noqa: E402
 
 # stdout 被多个 worker 线程并发写,必须加锁,否则 JSON 行会交错损坏。
 _stdout_lock = threading.Lock()
@@ -61,6 +62,11 @@ def handle_request(req, executor_pool: ThreadPoolExecutor):
     req_id = req.get("id")
     method = req.get("method")
     params = req.get("params", {}) or {}
+
+    # 协议校验:未在 protocol/schema.json 中声明的方法一律拒绝
+    if not is_known_method(method):
+        send_error(req_id, -32601, f"Method not found: {method}")
+        return
 
     # executor.execute 特殊:接收 notify 回调,立即返回 sessionId
     if method == "executor.execute":

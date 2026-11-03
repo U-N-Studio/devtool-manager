@@ -109,6 +109,7 @@ export interface CommandDetail {
 export type RpcMethod =
   | 'ping'
   | 'env.list'
+  | 'env.python_info'
   | 'env.set_var'
   | 'env.delete_var'
   | 'env.add_path_entry'
@@ -141,6 +142,7 @@ export interface RpcParamsMap {
   'env.add_path_entry': { value: string; source?: 'system' | 'user' }
   'env.delete_path_entry': { value: string; source?: 'system' | 'user' }
   'env.get_raw_path': { source?: 'system' | 'user' }
+  'env.python_info': Record<string, never>
   'tools.info': { category: string }
   'commands.list': { installed_only?: boolean }
   'commands.detail': { name: string }
@@ -152,11 +154,11 @@ export interface RpcParamsMap {
     env?: Record<string, string>
   }
   'executor.kill': { sessionId: string }
-  'history.list': { items: HistoryEntry[] }
+  'history.list': Record<string, never>
   'history.add': { command: string; exitCode?: number }
-  'history.clear': { ok: boolean }
+  'history.clear': Record<string, never>
   'history.delete': { id: string }
-  'favorites.list': { items: FavoriteEntry[] }
+  'favorites.list': Record<string, never>
   'favorites.add': { command: string; label?: string }
   'favorites.remove': { command: string }
   shutdown: Record<string, never>
@@ -171,6 +173,12 @@ export interface RpcResultMap {
   'env.add_path_entry': { ok: boolean }
   'env.delete_path_entry': { ok: boolean }
   'env.get_raw_path': { value: string }
+  'env.python_info': {
+    version: string
+    pip: string
+    platform: string
+    executable: string
+  }
   'tools.info': ToolInfo
   'commands.list': { items: { name: string; installed: boolean }[] }
   'commands.detail': CommandDetail

@@ -1,7 +1,7 @@
 # DevTool Manager — Electron + React 重写设计
 
 **日期**：2026-10-20
-**状态**：已通过用户评审，待编写实现计划
+**状态**：已完成（`electron/` 已实现，旧版 `main/` 已删除，业务逻辑迁至 `backend/src/`）
 **关联**：将现有 `main/`（Python + CustomTkinter）转写为 `electron/`（Electron + React + TypeScript）
 
 ---

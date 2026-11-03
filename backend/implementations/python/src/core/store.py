@@ -23,6 +23,7 @@ def _ensure_dir():
 
 
 def _read_json(path: Path, default):
+    """读取 JSON 文件,不存在或损坏时返回默认值。"""
     try:
         if path.exists():
             with open(path, "r", encoding="utf-8") as f:
@@ -33,6 +34,7 @@ def _read_json(path: Path, default):
 
 
 def _write_json(path: Path, data):
+    """确保数据目录存在后写入 JSON(UTF-8, 保留中文)。"""
     _ensure_dir()
     try:
         with open(path, "w", encoding="utf-8") as f:

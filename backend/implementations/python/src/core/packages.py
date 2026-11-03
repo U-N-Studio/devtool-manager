@@ -204,6 +204,7 @@ _PKG_TAGS = {
 
 
 def get_installed_packages():
+    """执行 pip list --format=json 获取当前已安装包列表。"""
     try:
         py = get_python_executable()
         output = subprocess.check_output(
@@ -222,6 +223,10 @@ INSTALL_TAGS = ["Installed", "Not Installed"]
 
 
 def get_categorized_packages(func_tag: str = "", lang_tag: str = "", install_tag: str = ""):
+    """按功能/语言/安装状态过滤并组装包列表。
+
+    已知包表 _PKG_TAGS 与 pip 实际安装结果合并,未安装的已知包也列出(标 Not Installed)。
+    """
     installed_pkgs = get_installed_packages()
     installed_set = {p["name"].lower() for p in installed_pkgs}
     installed_map = {p["name"].lower(): p for p in installed_pkgs}
@@ -255,6 +260,7 @@ def get_categorized_packages(func_tag: str = "", lang_tag: str = "", install_tag
 
 
 def install_package(name):
+    """pip install 安装指定包,返回 (是否成功, 输出文本)。"""
     try:
         py = get_python_executable()
         result = subprocess.run(
@@ -268,6 +274,7 @@ def install_package(name):
 
 
 def uninstall_package(name):
+    """pip uninstall -y 卸载指定包,返回 (是否成功, 输出文本)。"""
     try:
         py = get_python_executable()
         result = subprocess.run(

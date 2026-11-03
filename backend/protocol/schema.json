@@ -1,0 +1,383 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "DevTool Manager Backend API Protocol",
+  "description": "独立后端服务的 JSON-RPC 2.0 协议。实现该协议的任何后端(当前为 Python stdio 实现)均可被前端直接消费,替换实现无需改动前端。",
+  "transport": "newline-delimited JSON-RPC 2.0 over stdio",
+  "version": "1.0.0",
+  "definitions": {
+    "EnvItem": {
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "value": { "type": "string" },
+        "source": { "enum": ["system", "user"] },
+        "is_path_entry": { "type": "boolean" }
+      },
+      "required": ["name", "value", "source"]
+    },
+    "ToolInfoDetail": {
+      "type": "object",
+      "properties": { "label": { "type": "string" }, "value": { "type": "string" } },
+      "required": ["label", "value"]
+    },
+    "ToolInfo": {
+      "type": "object",
+      "properties": {
+        "installed": { "type": "boolean" },
+        "version": { "type": ["string", "null"] },
+        "home": { "type": ["string", "null"] },
+        "compiler": { "type": ["string", "null"] },
+        "sdk": { "type": ["string", "null"] },
+        "ndk": { "type": ["string", "null"] },
+        "details": { "type": "array", "items": { "$ref": "#/definitions/ToolInfoDetail" } }
+      },
+      "required": ["installed", "details"]
+    },
+    "CommandParam": {
+      "type": "object",
+      "properties": { "name": { "type": "string" }, "description": { "type": "string" } },
+      "required": ["name", "description"]
+    },
+    "CommandSubcommand": {
+      "type": "object",
+      "properties": { "name": { "type": "string" }, "description": { "type": "string" } },
+      "required": ["name", "description"]
+    },
+    "CommandEnvVar": {
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "value": { "type": "string" },
+        "set": { "type": "boolean" }
+      },
+      "required": ["name", "value", "set"]
+    },
+    "CommandConfigItem": {
+      "type": "object",
+      "properties": { "key": { "type": "string" }, "value": { "type": "string" } },
+      "required": ["key", "value"]
+    },
+    "CommandConfigSection": {
+      "type": "object",
+      "properties": {
+        "level": { "type": "string" },
+        "items": { "type": "array", "items": { "$ref": "#/definitions/CommandConfigItem" } }
+      },
+      "required": ["level", "items"]
+    },
+    "CommandDetail": {
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "installed": { "type": "boolean" },
+        "version": { "type": "string" },
+        "path": { "type": "string" },
+        "description": { "type": "string" },
+        "params": { "type": "array", "items": { "$ref": "#/definitions/CommandParam" } },
+        "subcommands": { "type": "array", "items": { "$ref": "#/definitions/CommandSubcommand" } },
+        "env_vars": { "type": "array", "items": { "$ref": "#/definitions/CommandEnvVar" } },
+        "config_sections": { "type": "array", "items": { "$ref": "#/definitions/CommandConfigSection" } }
+      },
+      "required": ["name", "installed", "version", "path", "description"]
+    },
+    "SubcommandParam": {
+      "type": "object",
+      "properties": { "name": { "type": "string" }, "description": { "type": "string" } },
+      "required": ["name", "description"]
+    },
+    "SubcommandHelp": {
+      "type": "object",
+      "properties": {
+        "command": { "type": "string" },
+        "subcommand": { "type": "string" },
+        "params": { "type": "array", "items": { "$ref": "#/definitions/SubcommandParam" } },
+        "pathParams": { "type": "array", "items": { "$ref": "#/definitions/SubcommandParam" } }
+      },
+      "required": ["command", "subcommand"]
+    },
+    "HistoryEntry": {
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "command": { "type": "string" },
+        "timestamp": { "type": "number" },
+        "exitCode": { "type": ["number", "null"] }
+      },
+      "required": ["id", "command", "timestamp"]
+    },
+    "FavoriteEntry": {
+      "type": "object",
+      "properties": {
+        "command": { "type": "string" },
+        "label": { "type": "string" },
+        "timestamp": { "type": "number" }
+      },
+      "required": ["command", "label", "timestamp"]
+    },
+    "CommandItem": {
+      "type": "object",
+      "properties": { "name": { "type": "string" }, "installed": { "type": "boolean" } },
+      "required": ["name", "installed"]
+    },
+    "OkResult": { "type": "object", "properties": { "ok": { "type": "boolean" } }, "required": ["ok"] }
+  },
+  "methods": [
+    {
+      "name": "ping",
+      "params": { "type": "object", "additionalProperties": false },
+      "result": { "type": "object", "properties": { "pong": { "type": "boolean" } }, "required": ["pong"] }
+    },
+    {
+      "name": "env.list",
+      "params": { "type": "object", "additionalProperties": false },
+      "result": {
+        "type": "object",
+        "properties": { "items": { "type": "object", "additionalProperties": { "type": "array", "items": { "$ref": "#/definitions/EnvItem" } } } },
+        "required": ["items"]
+      }
+    },
+    {
+      "name": "env.set_var",
+      "params": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" },
+          "value": { "type": "string" },
+          "source": { "enum": ["system", "user"] }
+        },
+        "required": ["name", "value"],
+        "additionalProperties": false
+      },
+      "result": { "$ref": "#/definitions/OkResult" }
+    },
+    {
+      "name": "env.delete_var",
+      "params": {
+        "type": "object",
+        "properties": { "name": { "type": "string" }, "source": { "enum": ["system", "user"] } },
+        "required": ["name"],
+        "additionalProperties": false
+      },
+      "result": { "$ref": "#/definitions/OkResult" }
+    },
+    {
+      "name": "env.add_path_entry",
+      "params": {
+        "type": "object",
+        "properties": { "value": { "type": "string" }, "source": { "enum": ["system", "user"] } },
+        "required": ["value"],
+        "additionalProperties": false
+      },
+      "result": { "$ref": "#/definitions/OkResult" }
+    },
+    {
+      "name": "env.delete_path_entry",
+      "params": {
+        "type": "object",
+        "properties": { "value": { "type": "string" }, "source": { "enum": ["system", "user"] } },
+        "required": ["value"],
+        "additionalProperties": false
+      },
+      "result": { "$ref": "#/definitions/OkResult" }
+    },
+    {
+      "name": "env.get_raw_path",
+      "params": {
+        "type": "object",
+        "properties": { "source": { "enum": ["system", "user"] } },
+        "additionalProperties": false
+      },
+      "result": { "type": "object", "properties": { "value": { "type": "string" } }, "required": ["value"] }
+    },
+    {
+      "name": "env.python_info",
+      "params": { "type": "object", "additionalProperties": false },
+      "result": {
+        "type": "object",
+        "properties": {
+          "version": { "type": "string" },
+          "pip": { "type": "string" },
+          "platform": { "type": "string" },
+          "executable": { "type": "string" }
+        },
+        "required": ["version", "pip", "platform", "executable"]
+      }
+    },
+    {
+      "name": "tools.info",
+      "params": {
+        "type": "object",
+        "properties": { "category": { "type": "string" } },
+        "required": ["category"],
+        "additionalProperties": false
+      },
+      "result": { "$ref": "#/definitions/ToolInfo" }
+    },
+    {
+      "name": "commands.list",
+      "params": {
+        "type": "object",
+        "properties": { "installed_only": { "type": "boolean" } },
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "object",
+        "properties": { "items": { "type": "array", "items": { "$ref": "#/definitions/CommandItem" } } },
+        "required": ["items"]
+      }
+    },
+    {
+      "name": "commands.detail",
+      "params": {
+        "type": "object",
+        "properties": { "name": { "type": "string" } },
+        "required": ["name"],
+        "additionalProperties": false
+      },
+      "result": { "$ref": "#/definitions/CommandDetail" }
+    },
+    {
+      "name": "commands.description",
+      "params": {
+        "type": "object",
+        "properties": { "name": { "type": "string" } },
+        "required": ["name"],
+        "additionalProperties": false
+      },
+      "result": { "type": "object", "properties": { "text": { "type": "string" } }, "required": ["text"] }
+    },
+    {
+      "name": "commands.subcommand_help",
+      "params": {
+        "type": "object",
+        "properties": { "command": { "type": "string" }, "subcommand": { "type": "string" } },
+        "required": ["command", "subcommand"],
+        "additionalProperties": false
+      },
+      "result": { "$ref": "#/definitions/SubcommandHelp" }
+    },
+    {
+      "name": "executor.execute",
+      "params": {
+        "type": "object",
+        "properties": {
+          "command": { "type": "string" },
+          "cwd": { "type": "string" },
+          "env": { "type": "object", "additionalProperties": { "type": "string" } }
+        },
+        "required": ["command"],
+        "additionalProperties": false
+      },
+      "result": { "type": "object", "properties": { "sessionId": { "type": "string" } }, "required": ["sessionId"] }
+    },
+    {
+      "name": "executor.kill",
+      "params": {
+        "type": "object",
+        "properties": { "sessionId": { "type": "string" } },
+        "required": ["sessionId"],
+        "additionalProperties": false
+      },
+      "result": { "$ref": "#/definitions/OkResult" }
+    },
+    {
+      "name": "history.list",
+      "params": { "type": "object", "additionalProperties": false },
+      "result": {
+        "type": "object",
+        "properties": { "items": { "type": "array", "items": { "$ref": "#/definitions/HistoryEntry" } } },
+        "required": ["items"]
+      }
+    },
+    {
+      "name": "history.add",
+      "params": {
+        "type": "object",
+        "properties": { "command": { "type": "string" }, "exitCode": { "type": ["number", "null"] } },
+        "required": ["command"],
+        "additionalProperties": false
+      },
+      "result": { "$ref": "#/definitions/OkResult" }
+    },
+    {
+      "name": "history.clear",
+      "params": { "type": "object", "additionalProperties": false },
+      "result": { "$ref": "#/definitions/OkResult" }
+    },
+    {
+      "name": "history.delete",
+      "params": {
+        "type": "object",
+        "properties": { "id": { "type": "string" } },
+        "required": ["id"],
+        "additionalProperties": false
+      },
+      "result": { "$ref": "#/definitions/OkResult" }
+    },
+    {
+      "name": "favorites.list",
+      "params": { "type": "object", "additionalProperties": false },
+      "result": {
+        "type": "object",
+        "properties": { "items": { "type": "array", "items": { "$ref": "#/definitions/FavoriteEntry" } } },
+        "required": ["items"]
+      }
+    },
+    {
+      "name": "favorites.add",
+      "params": {
+        "type": "object",
+        "properties": { "command": { "type": "string" }, "label": { "type": "string" } },
+        "required": ["command"],
+        "additionalProperties": false
+      },
+      "result": { "$ref": "#/definitions/OkResult" }
+    },
+    {
+      "name": "favorites.remove",
+      "params": {
+        "type": "object",
+        "properties": { "command": { "type": "string" } },
+        "required": ["command"],
+        "additionalProperties": false
+      },
+      "result": { "$ref": "#/definitions/OkResult" }
+    },
+    {
+      "name": "shutdown",
+      "params": { "type": "object", "additionalProperties": false },
+      "result": { "type": "object", "additionalProperties": false }
+    }
+  ],
+  "notifications": [
+    { "name": "ready", "params": { "type": "object", "additionalProperties": false } },
+    {
+      "name": "executor.output",
+      "params": {
+        "type": "object",
+        "properties": {
+          "sessionId": { "type": "string" },
+          "stream": { "enum": ["stdout", "stderr"] },
+          "line": { "type": "string" }
+        },
+        "required": ["sessionId", "stream", "line"]
+      }
+    },
+    {
+      "name": "executor.done",
+      "params": {
+        "type": "object",
+        "properties": { "sessionId": { "type": "string" }, "exitCode": { "type": "number" } },
+        "required": ["sessionId", "exitCode"]
+      }
+    },
+    { "name": "env.changed", "params": { "type": "object", "additionalProperties": false } }
+  ],
+  "errorCodes": {
+    "-32700": "Parse error",
+    "-32600": "Invalid request",
+    "-32601": "Method not found",
+    "-32602": "Invalid params",
+    "-32603": "Internal error"
+  }
+}

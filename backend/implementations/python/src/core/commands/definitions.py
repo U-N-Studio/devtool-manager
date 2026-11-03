@@ -1,12 +1,14 @@
 ﻿"""开发工具命令定义与详情加载。
 
-维护内置命令清单(git / npm / python …),通过执行 --version / --help 解析版本、
-参数、子命令,并委托 :mod:`src.core.commands.probes` 探测配置项,最终组装为
+命令清单数据存放在 data/command_defs.json(实现无关,任何语言可读),
+本模块负责加载清单并通过执行 --version / --help 解析版本、参数、子命令,
+并委托 :mod:`src.core.commands.probes` 探测配置项,最终组装为
 供 UI 展示的命令详情字典。
 """
 
 import sys
 import os
+import json
 import re
 import subprocess
 import shutil
@@ -19,48 +21,38 @@ from src.core.commands.git_knowledge import (
 
 _SUBPROCESS_FLAGS = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
 
-_COMMAND_DEFS = [
-    {"name": "git", "version_args": ["--version"], "help_args": ["--help"], "description": "分布式版本控制系统", "env_vars": ["GIT_HOME", "GIT_EXEC_PATH", "GIT_EDITOR", "GIT_CONFIG_GLOBAL"]},
-    {"name": "svn", "version_args": ["--version", "--quiet"], "help_args": ["help"], "description": "Apache 集中式版本控制", "env_vars": ["SVN_HOME"]},
-    {"name": "hg", "version_args": ["--version"], "help_args": ["--help"], "description": "Mercurial 分布式版本控制", "env_vars": ["HGRCPATH"]},
-    {"name": "java", "version_args": ["-version"], "help_args": ["-help"], "description": "Java 运行时 (JRE/JDK)", "env_vars": ["JAVA_HOME", "JRE_HOME", "JDK_HOME", "CLASSPATH", "JAVA_OPTS", "JAVA_TOOL_OPTIONS"]},
-    {"name": "javac", "version_args": ["-version"], "help_args": ["-help"], "description": "Java 编译器", "env_vars": ["JAVA_HOME", "JDK_HOME"]},
-    {"name": "mvn", "version_args": ["--version"], "help_args": ["--help"], "description": "Apache Maven 构建工具", "env_vars": ["MAVEN_HOME", "M2_HOME"]},
-    {"name": "gradle", "version_args": ["--version"], "help_args": ["--help"], "description": "Gradle 构建系统", "env_vars": ["GRADLE_HOME", "GRADLE_USER_HOME"]},
-    {"name": "ant", "version_args": ["-version"], "help_args": ["-help"], "description": "Apache Ant 构建工具", "env_vars": ["ANT_HOME"]},
-    {"name": "python", "version_args": ["--version"], "help_args": ["--help"], "description": "Python 解释器", "env_vars": ["PYTHONHOME", "PYTHONPATH", "PYTHONSTARTUP", "PYTHONIOENCODING", "PYTHONUTF8"]},
-    {"name": "pip", "version_args": ["--version"], "help_args": ["--help"], "description": "Python 包安装器", "env_vars": ["PIP_INDEX_URL", "PIP_TARGET"]},
-    {"name": "conda", "version_args": ["--version"], "help_args": ["--help"], "description": "Conda 包与环境管理器", "env_vars": ["CONDA_PREFIX", "CONDA_DEFAULT_ENV"]},
-    {"name": "poetry", "version_args": ["--version"], "help_args": ["--help"], "description": "Python 依赖管理工具", "env_vars": ["POETRY_HOME"]},
-    {"name": "uv", "version_args": ["--version"], "help_args": ["--help"], "description": "快速 Python 包安装器", "env_vars": []},
-    {"name": "node", "version_args": ["--version"], "help_args": ["--help"], "description": "Node.js JavaScript 运行时", "env_vars": ["NODE_HOME", "NODE_PATH", "NODE_OPTIONS"]},
-    {"name": "npm", "version_args": ["--version"], "help_args": ["--help"], "description": "Node 包管理器", "env_vars": ["NPM_CONFIG_PREFIX", "NPM_CONFIG_REGISTRY", "NPM_HOME"]},
-    {"name": "npx", "version_args": ["--version"], "help_args": ["--help"], "description": "Node 包执行器", "env_vars": []},
-    {"name": "yarn", "version_args": ["--version"], "help_args": ["--help"], "description": "Yarn 包管理器", "env_vars": ["YARN_HOME"]},
-    {"name": "pnpm", "version_args": ["--version"], "help_args": ["--help"], "description": "高性能 npm 替代", "env_vars": ["PNPM_HOME"]},
-    {"name": "bun", "version_args": ["--version"], "help_args": ["--help"], "description": "Bun JavaScript 运行时与打包器", "env_vars": ["BUN_INSTALL"]},
-    {"name": "go", "version_args": ["version"], "help_args": ["help"], "description": "Go 编程语言", "env_vars": ["GOROOT", "GOPATH", "GOBIN", "GOOS", "GOARCH"]},
-    {"name": "rustc", "version_args": ["--version"], "help_args": ["--help"], "description": "Rust 编译器", "env_vars": ["RUSTUP_HOME", "RUST_SRC_PATH"]},
-    {"name": "cargo", "version_args": ["--version"], "help_args": ["--help"], "description": "Rust 包管理器", "env_vars": ["CARGO_HOME"]},
-    {"name": "rustup", "version_args": ["--version"], "help_args": ["--help"], "description": "Rust 工具链安装器", "env_vars": ["RUSTUP_HOME"]},
-    {"name": "gcc", "version_args": ["--version"], "help_args": ["--help"], "description": "GNU C 编译器", "env_vars": ["MINGW_HOME", "GCC_HOME"]},
-    {"name": "g++", "version_args": ["--version"], "help_args": ["--help"], "description": "GNU C++ 编译器", "env_vars": ["MINGW_HOME", "GCC_HOME"]},
-    {"name": "clang", "version_args": ["--version"], "help_args": ["--help"], "description": "LLVM C/C++ 编译器", "env_vars": ["CLANG_HOME", "LLVM_HOME"]},
-    {"name": "cmake", "version_args": ["--version"], "help_args": ["--help"], "description": "CMake 构建系统", "env_vars": ["CMAKE_HOME"]},
-    {"name": "make", "version_args": ["--version"], "help_args": ["--help"], "description": "GNU Make 构建工具", "env_vars": ["MAKE_HOME"]},
-    {"name": "dotnet", "version_args": ["--version"], "help_args": ["--help"], "description": ".NET SDK/CLI", "env_vars": ["DOTNET_HOME", "DOTNET_ROOT", "NUGET_PACKAGES"]},
-    {"name": "docker", "version_args": ["--version"], "help_args": ["--help"], "description": "Docker 容器引擎", "env_vars": ["DOCKER_HOME", "DOCKER_CONFIG", "DOCKER_HOST"]},
-    {"name": "docker-compose", "version_args": ["--version"], "help_args": ["--help"], "description": "Docker Compose 编排工具", "env_vars": ["COMPOSE_HOME", "COMPOSE_FILE"]},
-    {"name": "adb", "version_args": ["version"], "help_args": ["help"], "description": "Android 调试桥", "env_vars": ["ANDROID_HOME", "ANDROID_SDK_ROOT", "ANDROID_PLATFORM_TOOLS"]},
-    {"name": "ffmpeg", "version_args": ["-version"], "help_args": ["-help"], "description": "多媒体处理框架", "env_vars": ["FFMPEG_HOME"]},
-    {"name": "ssh", "version_args": ["-V"], "help_args": ["-h"], "description": "OpenSSH 客户端", "env_vars": ["SSH_HOME", "HOME"]},
-    {"name": "curl", "version_args": ["--version"], "help_args": ["--help"], "description": "URL 数据传输工具", "env_vars": []},
-    {"name": "wget", "version_args": ["--version"], "help_args": ["--help"], "description": "非交互式网络下载器", "env_vars": []},
-    {"name": "7z", "version_args": [], "help_args": [], "description": "7-Zip 压缩工具", "env_vars": [], "version_hint": "7z | findstr /i \"7-Zip\""},
-]
 
+def _resolve_data_dir():
+    """定位 backend/data 目录。
+
+    源码态:从本文件向上 5 级 = backend/data。
+    冻结态(PyInstaller):数据打包在 <MEIPASS>/data/。
+    """
+    if getattr(sys, "frozen", False):
+        meipass = getattr(sys, "_MEIPASS", None)
+        if meipass:
+            return os.path.join(meipass, "data")
+    return os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "..", "data")
+
+
+def _load_command_defs():
+    """从 backend/data/command_defs.json 加载内置命令清单。
+
+    数据目录与实现目录同级(backend/data/),任何后端实现语言均可读取。
+    """
+    path = os.path.join(_resolve_data_dir(), "command_defs.json")
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return []
+
+
+# 内置命令清单:每条包含探测版本/帮助用的参数、中文描述与相关环境变量
+_COMMAND_DEFS = _load_command_defs()
 _CMD_DEFS_MAP = {d["name"]: d for d in _COMMAND_DEFS}
 
+# 命令详情缓存:name -> detail dict,避免重复探测
 _cache = {}
 
 
@@ -69,6 +61,7 @@ def clear_cache():
 
 
 def _run_cmd(args, timeout=5):
+    """执行子进程并合并输出。Windows 上 .cmd/.bat 脚本需 shell=True。"""
     try:
         # Windows 上 npm/pnpm/yarn 等是 .cmd 脚本,需要 shell=True 才能执行
         use_shell = False

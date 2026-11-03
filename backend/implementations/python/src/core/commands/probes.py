@@ -15,6 +15,7 @@ _SUBPROCESS_FLAGS = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 
 
 
 def _run(args, timeout=5):
+    """执行探测命令并返回合并输出文本。"""
     try:
         r = subprocess.run(args, capture_output=True, text=True, timeout=timeout,
                            creationflags=_SUBPROCESS_FLAGS, shell=True,
@@ -26,6 +27,7 @@ def _run(args, timeout=5):
 
 
 def _npm_probe():
+    """探测 npm 配置:合并配置、全局/用户/项目配置、全局安装包。"""
     sections = []
     if not shutil.which("npm"):
         return sections
@@ -82,6 +84,7 @@ def _npm_probe():
 
 
 def _pip_probe():
+    """探测 pip 配置:合并生效配置与各作用域(global/user/site)配置。"""
     sections = []
     py = sys.executable
     if not shutil.which(py):
@@ -112,6 +115,7 @@ def _pip_probe():
 
 
 def _git_probe():
+    """探测 git 配置:按来源(系统/全局/本地)分组列出配置项。"""
     sections = []
     if not shutil.which("git"):
         return sections
@@ -136,6 +140,7 @@ def _git_probe():
 
 
 def _gradle_probe():
+    """探测 gradle 属性配置(gradle properties)。"""
     sections = []
     if not shutil.which("gradle"):
         return sections
@@ -154,6 +159,7 @@ def _gradle_probe():
 
 
 def _maven_probe():
+    """探测 Maven 配置:用户 ~/.m2 与全局 conf/settings.xml。"""
     sections = []
     if not shutil.which("mvn"):
         return sections
@@ -177,6 +183,7 @@ def _maven_probe():
 
 
 def _cargo_probe():
+    """探测 Cargo 配置:CARGO_HOME 下 bin 目录与 config.toml。"""
     sections = []
     if not shutil.which("cargo"):
         return sections
@@ -196,6 +203,7 @@ def _cargo_probe():
 
 
 def _go_probe():
+    """探测 Go 环境变量(go env)。"""
     sections = []
     if not shutil.which("go"):
         return sections
@@ -215,6 +223,7 @@ def _go_probe():
 
 
 def _conda_probe():
+    """探测 Conda 信息与配置来源。"""
     sections = []
     if not shutil.which("conda"):
         return sections
