@@ -42,14 +42,11 @@ export interface ToolInfo {
   details: ToolInfoDetail[]
 }
 
-export interface CommandParam {
-  name: string
-  description: string
-}
-
 export interface CommandSubcommand {
   name: string
   description: string
+  category?: string
+  has_params?: boolean
 }
 
 export interface CommandEnvVar {
@@ -99,7 +96,6 @@ export interface CommandDetail {
   version: string
   path: string
   description: string
-  params: CommandParam[]
   subcommands: CommandSubcommand[]
   env_vars: CommandEnvVar[]
   config_sections: CommandConfigSection[]

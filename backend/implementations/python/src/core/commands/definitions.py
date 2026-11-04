@@ -114,6 +114,9 @@ def _extract_subcommands(help_text, max_items=50):
     """
     if not help_text:
         return []
+    # adb help 格式特殊:命令名后跟参数再跟描述,交给专用解析器
+    if "Android Debug Bridge" in help_text:
+        return _extract_adb_subcommands(help_text, max_items)
     subs = []
     seen = set()
 
@@ -183,6 +186,103 @@ def _is_subcommand_token(token):
     return token.islower() and all(c.isalnum() or c == "-" for c in token) and token[0].isalpha()
 
 
+# adb 官方命令名白名单(来自 `adb help` 各小节),用于准确提取子命令
+_ADB_COMMANDS = {
+    "devices", "help", "version", "connect", "disconnect", "pair",
+    "forward", "reverse", "ppp", "push", "pull", "sync", "shell", "emu",
+    "install", "install-multiple", "install-multi-package", "uninstall",
+    "bugreport", "jdwp", "logcat", "disable-verity", "enable-verity",
+    "keygen", "wait-for", "get-state", "get-serialno", "get-devpath",
+    "remount", "reboot", "sideload", "root", "unroot", "usb", "tcpip",
+    "start-server", "kill-server", "reconnect",
+}
+
+
+def _extract_adb_subcommands(help_text, max_items=50):
+    """按 adb help 的 section 格式提取子命令。
+
+    adb 每行是 "  <command> [参数...]   <描述>",命令名是行首缩进 token。
+    用官方命令白名单匹配行首,避免把参数(如 HOST、tcp:)误当命令。
+    描述可能在同行双空格后,也可能在下一行缩进续行里。
+    """
+    lines = help_text.splitlines()
+    subs = []
+    seen = set()
+    category = ""  # 当前 section 分类
+    for i, line in enumerate(lines):
+        stripped = line.strip()
+        if not stripped:
+            continue
+
+        # section 标题: 缩进 <=1 空格的小写 "xxx:" 行(续行缩进 >=4 不误判)
+        indent = len(line) - len(line.lstrip())
+        if (
+            stripped.endswith(":")
+            and indent <= 1
+            and not stripped.startswith("-")
+        ):
+            key = stripped[:-1].split(" (")[0]  # 去掉 "(see also...)" 说明
+            category = _ADB_SECTION_CN.get(key, key)
+            continue
+
+        token = stripped.split()[0].rstrip(",")
+        if token not in _ADB_COMMANDS or token in seen:
+            continue
+        seen.add(token)
+        # 保留 token 后的原始空白(不能 strip,否则双空格信息丢失)
+        desc = stripped[len(token):]
+        # 同行描述:取双空格之后
+        m = re.search(r"\s{2,}(.+)$", desc)
+        desc = m.group(1).strip() if m else ""
+        # 若无同行描述,看下一行是否为 4+ 空格缩进的续行(adb 命令续行风格)
+        if not desc and i + 1 < len(lines):
+            nxt_line = lines[i + 1]
+            indent = len(nxt_line) - len(nxt_line.lstrip())
+            nxt_stripped = nxt_line.strip()
+            if nxt_stripped and indent >= 4 and not nxt_stripped.startswith("-"):
+                desc = nxt_stripped
+        if len(desc) > 80:
+            desc = desc[:77] + "..."
+        # help 命令在版本行("help, 174")被匹配,无描述,手动补充
+        if not desc and token == "help":
+            desc = "show this help message"
+        subs.append({
+            "name": token,
+            "description": desc,
+            "category": category or "基础",
+        })
+        if len(subs) >= max_items:
+            break
+    return subs
+
+
+# adb help section 标题 -> 中文分类标签
+_ADB_SECTION_CN = {
+    "general commands": "基础",
+    "networking": "网络连接",
+    "file transfer": "文件传输",
+    "shell": "Shell",
+    "app installation": "应用安装",
+    "debugging": "调试",
+    "security": "安全",
+    "scripting": "脚本化",
+    "internal debugging": "内部调试",
+}
+
+
+def _load_adb_params():
+    """加载 adb 子命令常用参数(静态数据,避免运行探测挂起)。"""
+    data_dir = os.path.join(
+        os.path.dirname(__file__), "..", "..", "..", "..", "..", "data",
+    )
+    path = os.path.join(data_dir, "adb_params.json")
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+
 def _resolve_env_values(env_var_names):
     result = []
     for name in env_var_names:
@@ -214,21 +314,36 @@ def load_command_detail(name: str) -> dict:
     if installed and cmd_def.get("help_args"):
         help_text = _run_cmd([name] + cmd_def["help_args"], timeout=5) or ""
 
-    params = _extract_params(help_text) if help_text else []
     subcommands = _extract_subcommands(help_text) if help_text else []
 
-    # git 子命令: 用中文知识库覆盖描述
+    # git 子命令: 用中文知识库覆盖描述,并标记是否有参数
     if name == "git":
         for sub in subcommands:
             cn_desc = get_git_subcommand_description(sub["name"])
             if cn_desc:
                 sub["description"] = cn_desc
+            sub["has_params"] = bool(get_git_subcommand_params(sub["name"]))
         # 补充知识库中存在但 help 未列出的子命令
         existing_names = {s["name"] for s in subcommands}
         from src.core.commands.git_knowledge import GIT_SUBCOMMANDS
         for sub_name, cn_desc in GIT_SUBCOMMANDS.items():
             if sub_name not in existing_names:
-                subcommands.append({"name": sub_name, "description": cn_desc})
+                subcommands.append({
+                    "name": sub_name,
+                    "description": cn_desc,
+                    "has_params": bool(get_git_subcommand_params(sub_name)),
+                })
+
+    # adb 子命令: 用静态常用参数数据标记 has_params
+    elif name == "adb":
+        adb_params = _load_adb_params()
+        for sub in subcommands:
+            sub["has_params"] = len(adb_params.get(sub["name"], [])) > 0
+
+    # 其他命令: 展开时探测,默认认为可能有参数
+    else:
+        for sub in subcommands:
+            sub["has_params"] = True
 
     env_vars = _resolve_env_values(cmd_def.get("env_vars", []))
 
@@ -238,7 +353,6 @@ def load_command_detail(name: str) -> dict:
         "version": version,
         "path": path or "",
         "description": cmd_def.get("description", ""),
-        "params": params,
         "subcommands": subcommands,
         "env_vars": env_vars,
         "config_sections": [],
@@ -271,9 +385,31 @@ def load_subcommand_help(command: str, subcommand: str) -> dict:
                 result["params"].append({"name": flag, "description": desc})
             else:
                 result["pathParams"].append({"name": flag, "description": desc})
+        # 限量: 参数最多 6 个,路径参数最多 2 个(展示最常用的)
+        result["params"] = result["params"][:6]
+        result["pathParams"] = result["pathParams"][:2]
+        return result
+
+    # adb 特判: 返回静态常用参数数据,不运行探测(无设备会挂起)
+    if command == "adb":
+        adb_params = _load_adb_params()
+        for p in adb_params.get(subcommand, []):
+            if p.get("name", "").startswith("-"):
+                result["params"].append(p)
+            else:
+                result["pathParams"].append(p)
         return result
 
     # 通用: 执行 `command subcommand --help` 解析参数
+    result = _generic_subcommand_help(command, subcommand, result)
+    # 限量: 参数最多 6 个
+    result["params"] = result["params"][:6]
+    result["pathParams"] = result["pathParams"][:2]
+    return result
+
+
+def _generic_subcommand_help(command: str, subcommand: str, result: dict) -> dict:
+    """执行 `command subcommand --help`(-h 兜底)解析参数。"""
     path = shutil.which(command)
     if not path:
         return result

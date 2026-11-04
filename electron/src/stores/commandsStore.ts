@@ -14,9 +14,11 @@ interface CommandsState {
   message: string
   filterInstalled: boolean
   searchTerm: string
+  runSubcommand: string
   runArgs: string
   sortMode: CommandSortMode
   customOrder: string[]
+  setRunSubcommand: (sub: string) => void
   setRunArgs: (args: string) => void
   refresh: () => Promise<void>
   setFilterInstalled: (installed: boolean) => void
@@ -54,9 +56,11 @@ export const useCommandsStore = create<CommandsState>((set, get) => ({
   message: '',
   filterInstalled: true,
   searchTerm: '',
+  runSubcommand: '',
   runArgs: '',
   sortMode: loadSort().mode,
   customOrder: loadSort().order,
+  setRunSubcommand: (sub) => set({ runSubcommand: sub }),
   setRunArgs: (args) => set({ runArgs: args }),
   setSortMode: (mode) => {
     let order = get().customOrder
@@ -114,7 +118,7 @@ export const useCommandsStore = create<CommandsState>((set, get) => ({
   },
   setSearchTerm: (term) => set({ searchTerm: term }),
   selectCommand: async (name) => {
-    set({ isLoading: true, message: `Loading ${name}...`, runArgs: '' })
+    set({ isLoading: true, message: `Loading ${name}...`, runArgs: '', runSubcommand: '' })
     try {
       const detail = await api.commands.detail(name)
       set({ selectedDetail: detail, message: '', isLoading: false })

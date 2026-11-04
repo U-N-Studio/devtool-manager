@@ -10,6 +10,7 @@ interface EnvState {
   toolInfo: ToolInfo | null
   selectedCategory: string
   isLoading: boolean
+  toolLoading: boolean
   message: string
   refresh: () => Promise<void>
   refreshToolInfo: (category: string) => Promise<void>
@@ -58,6 +59,7 @@ export const useEnvStore = create<EnvState>((set, get) => ({
   toolInfo: null,
   selectedCategory: 'All',
   isLoading: false,
+  toolLoading: false,
   message: '',
 
   refresh: async () => {
@@ -74,13 +76,13 @@ export const useEnvStore = create<EnvState>((set, get) => ({
   },
 
   refreshToolInfo: async (category) => {
-    set({ isLoading: true })
+    set({ toolLoading: true })
     try {
       set({ toolInfo: await api.tools.info(category) })
     } catch (e: unknown) {
       set({ message: e instanceof Error ? e.message : String(e) })
     } finally {
-      set({ isLoading: false })
+      set({ toolLoading: false })
     }
   },
 
@@ -88,6 +90,7 @@ export const useEnvStore = create<EnvState>((set, get) => ({
     set({
       selectedCategory: category,
       envItems: flattenByCategory(get().categorizedItems, category),
+      toolInfo: null,
     })
   },
 

@@ -5,12 +5,37 @@ import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { useHistoryFavoritesStore } from '@/stores/historyFavoritesStore'
 import { useExecutorStore } from '@/stores/executorStore'
+import { useCommandsStore } from '@/stores/commandsStore'
 
 export function FavoritesPanel() {
   const favorites = useHistoryFavoritesStore((s) => s.favorites)
   const removeFavorite = useHistoryFavoritesStore((s) => s.removeFavorite)
   const execute = useExecutorStore((s) => s.execute)
+  const commandItems = useCommandsStore((s) => s.commandItems)
+  const selectCommand = useCommandsStore((s) => s.selectCommand)
+  const setRunSubcommand = useCommandsStore((s) => s.setRunSubcommand)
+  const setRunArgs = useCommandsStore((s) => s.setRunArgs)
   const [search, setSearch] = useState('')
+
+  const commandNames = useMemo(() => commandItems.map((c) => c.name), [commandItems])
+
+  // 运行收藏命令:联动左侧命令选择 + 填充 QuickRunBar
+  const handleRunFavorite = (cmd: string) => {
+    const tokens = cmd.trim().split(/\s+/)
+    const head = tokens[0]
+    if (head && commandNames.includes(head)) {
+      void selectCommand(head)
+      const rest = tokens.slice(1)
+      if (rest.length > 0) {
+        setRunSubcommand(rest[0])
+        setRunArgs(rest.slice(1).join(' '))
+      } else {
+        setRunSubcommand('')
+        setRunArgs('')
+      }
+    }
+    void execute(cmd)
+  }
 
   const filtered = useMemo(() => {
     if (!search.trim()) return favorites
@@ -61,7 +86,7 @@ export function FavoritesPanel() {
                 className="group flex items-center gap-1 px-3 py-1.5 hover:bg-accent"
               >
                 <button
-                  onClick={() => void execute(f.command)}
+                  onClick={() => handleRunFavorite(f.command)}
                   className="flex flex-1 items-center gap-1.5 text-left"
                   title="运行"
                 >

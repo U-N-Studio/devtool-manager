@@ -6,6 +6,7 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { Badge } from '@/components/ui/badge'
 import { useHistoryFavoritesStore } from '@/stores/historyFavoritesStore'
 import { useExecutorStore } from '@/stores/executorStore'
+import { useCommandsStore } from '@/stores/commandsStore'
 
 function formatTime(ts: number): string {
   const d = new Date(ts * 1000)
@@ -26,7 +27,30 @@ export function HistoryPanel() {
   const clearHistory = useHistoryFavoritesStore((s) => s.clearHistory)
   const deleteHistory = useHistoryFavoritesStore((s) => s.deleteHistory)
   const execute = useExecutorStore((s) => s.execute)
+  const commandItems = useCommandsStore((s) => s.commandItems)
+  const selectCommand = useCommandsStore((s) => s.selectCommand)
+  const setRunSubcommand = useCommandsStore((s) => s.setRunSubcommand)
+  const setRunArgs = useCommandsStore((s) => s.setRunArgs)
+  const commandNames = useMemo(() => commandItems.map((c) => c.name), [commandItems])
   const [search, setSearch] = useState('')
+
+  // 点击历史条目:联动左侧命令选择 + 填充 QuickRunBar,再执行
+  const handleRunHistory = (cmd: string) => {
+    const tokens = cmd.trim().split(/\s+/)
+    const head = tokens[0]
+    if (head && commandNames.includes(head)) {
+      void selectCommand(head)
+      const rest = tokens.slice(1)
+      if (rest.length > 0) {
+        setRunSubcommand(rest[0])
+        setRunArgs(rest.slice(1).join(' '))
+      } else {
+        setRunSubcommand('')
+        setRunArgs('')
+      }
+    }
+    void execute(cmd)
+  }
 
   const filtered = useMemo(() => {
     if (!search.trim()) return history
@@ -85,7 +109,7 @@ export function HistoryPanel() {
               >
                 <div className="flex items-center gap-1">
                   <button
-                    onClick={() => void execute(h.command)}
+                    onClick={() => handleRunHistory(h.command)}
                     className="flex flex-1 items-center gap-1 text-left"
                     title="重新运行"
                   >

@@ -8,8 +8,9 @@ import { useAppStore } from '@/stores/appStore'
 
 export function QuickRunBar() {
   const selectedDetail = useCommandsStore((s) => s.selectedDetail)
-  const args = useCommandsStore((s) => s.runArgs)
-  const setArgs = useCommandsStore((s) => s.setRunArgs)
+  const runSubcommand = useCommandsStore((s) => s.runSubcommand)
+  const runArgs = useCommandsStore((s) => s.runArgs)
+  const setRunArgs = useCommandsStore((s) => s.setRunArgs)
   const execute = useExecutorStore((s) => s.execute)
   const kill = useExecutorStore((s) => s.kill)
   const isRunning = useExecutorStore((s) => s.isRunning)
@@ -21,14 +22,18 @@ export function QuickRunBar() {
   const detail = selectedDetail
   const installed = detail?.installed ?? false
 
-  const parts = args.trim().split(/\s+/).filter(Boolean)
-  const subcommand = parts.length > 0 ? parts[0] : null
-  const restArgs = parts.slice(1).join(' ')
+  // 子命令与参数分离存储:runSubcommand 独立,runArgs 只存参数
+  const subcommand = runSubcommand
+  const argsText = runArgs.trim()
 
   const fullCommand = detail
-    ? args.trim()
-      ? `${detail.name} ${args.trim()}`
-      : detail.name
+    ? subcommand
+      ? argsText
+        ? `${detail.name} ${subcommand} ${argsText}`
+        : `${detail.name} ${subcommand}`
+      : argsText
+        ? `${detail.name} ${argsText}`
+        : detail.name
     : ''
 
   const handleRun = () => {
@@ -122,16 +127,16 @@ export function QuickRunBar() {
           </span>
         )}
         {subcommand && (
-          <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 font-mono text-xs text-foreground">
+          <span
+            className="shrink-0 rounded bg-muted px-1.5 py-0.5 font-mono text-xs text-foreground"
+            title={`子命令: ${subcommand}(点击清除)`}
+          >
             {subcommand}
           </span>
         )}
         <input
-          value={restArgs}
-          onChange={(e) => {
-            const v = e.target.value
-            setArgs(subcommand ? `${subcommand} ${v}`.trim() : v)
-          }}
+          value={argsText}
+          onChange={(e) => setRunArgs(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === 'Enter' && !isRunning && installed) {
               handleRun()
@@ -141,7 +146,7 @@ export function QuickRunBar() {
             detail
               ? subcommand
                 ? '输入参数…'
-                : '选择子命令，或输入参数…'
+                : '输入子命令或参数…'
               : '请先在左侧选择一个命令'
           }
           className="terminal-text min-w-[120px] flex-1 bg-transparent font-mono text-xs placeholder:text-muted-foreground focus:outline-none"

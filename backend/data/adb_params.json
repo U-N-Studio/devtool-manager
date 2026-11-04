@@ -1,0 +1,114 @@
+{
+  "_comment": "adb 子命令的常用参数(静态精选,避免运行 --help 在无设备时挂起)。key=子命令, value=参数数组[{name, description}]",
+  "devices": [
+    { "name": "-l", "description": "长格式输出(显示型号/设备信息)" }
+  ],
+  "connect": [
+    { "name": "HOST[:PORT]", "description": "通过 TCP/IP 连接设备(默认端口 5555)" }
+  ],
+  "disconnect": [
+    { "name": "HOST[:PORT]", "description": "断开指定 TCP/IP 设备;不填则断开全部" }
+  ],
+  "forward": [
+    { "name": "--list", "description": "列出所有正向端口转发" },
+    { "name": "tcp:PORT", "description": "宿主端口(如 tcp:8080)" },
+    { "name": "tcp:PORT", "description": "设备端口(如 tcp:8080)" }
+  ],
+  "reverse": [
+    { "name": "--list", "description": "列出所有反向端口转发" },
+    { "name": "tcp:PORT", "description": "设备端口" },
+    { "name": "tcp:PORT", "description": "宿主端口" }
+  ],
+  "push": [
+    { "name": "LOCAL", "description": "本地文件/目录路径" },
+    { "name": "REMOTE", "description": "设备上的目标路径" },
+    { "name": "-z", "description": "启用压缩传输" },
+    { "name": "-p", "description": "显示传输进度" }
+  ],
+  "pull": [
+    { "name": "REMOTE", "description": "设备上的文件/目录路径" },
+    { "name": "LOCAL", "description": "本地保存路径(默认当前目录)" },
+    { "name": "-p", "description": "显示传输进度" }
+  ],
+  "sync": [
+    { "name": "LOCAL", "description": "同步 $ANDROID_PRODUCT_OUT 中的内容" }
+  ],
+  "shell": [
+    { "name": "COMMAND", "description": "要执行的 shell 命令(不填进入交互式 shell)" },
+    { "name": "-T", "description": "禁用 PTY 分配" }
+  ],
+  "install": [
+    { "name": "PACKAGE", "description": "要安装的 APK 路径" },
+    { "name": "-r", "description": "覆盖安装(保留数据)" },
+    { "name": "-d", "description": "允许降版本安装" },
+    { "name": "-g", "description": "授予运行时权限" }
+  ],
+  "install-multiple": [
+    { "name": "PACKAGES", "description": "多个 APK 文件路径" },
+    { "name": "-r", "description": "覆盖安装" }
+  ],
+  "install-multi-package": [
+    { "name": "PACKAGES", "description": "多个 APK 文件路径(原子安装)" },
+    { "name": "-r", "description": "覆盖安装" }
+  ],
+  "uninstall": [
+    { "name": "PACKAGE", "description": "要卸载的包名(如 com.example.app)" },
+    { "name": "-k", "description": "保留数据与缓存目录" }
+  ],
+  "bugreport": [
+    { "name": "PATH", "description": "bugreport 输出路径(默认 bugreport.zip)" }
+  ],
+  "logcat": [
+    { "name": "-b BUFFER", "description": "指定缓冲区(main/system/events/crash)" },
+    { "name": "-c", "description": "清空日志缓冲" },
+    { "name": "-d", "description": "输出后退出(不阻塞)" },
+    { "name": "-s TAG", "description": "按 tag 过滤(如 -s ActivityManager)" },
+    { "name": "-v FORMAT", "description": "输出格式(brief/thread/time/raw)" },
+    { "name": "-t COUNT", "description": "只显示最近 N 行" },
+    { "name": "-f FILE", "description": "写入文件(默认 stdout)" }
+  ],
+  "get-state": [
+    { "name": "-e", "description": "通过 TCP/IP 设备查询" }
+  ],
+  "get-serialno": [],
+  "get-devpath": [],
+  "remount": [
+    { "name": "-R", "description": "禁用 dm-verity 并重启设备" },
+    { "name": "-T fstab_file", "description": "指定自定义 fstab 文件" }
+  ],
+  "reboot": [
+    { "name": "TYPE", "description": "重启模式(bootloader/recovery/sideload)" }
+  ],
+  "sideload": [
+    { "name": "OTA_FILE", "description": "完整 OTA 包路径" }
+  ],
+  "root": [],
+  "unroot": [],
+  "usb": [],
+  "tcpip": [
+    { "name": "PORT", "description": "adbd 监听 TCP 端口(如 5555)" }
+  ],
+  "start-server": [],
+  "kill-server": [],
+  "reconnect": [
+    { "name": "device", "description": "从设备侧踢出连接并重连" }
+  ],
+  "help": [],
+  "version": [],
+  "emu": [
+    { "name": "CONSOLE_COMMAND", "description": "模拟器控制台命令(如 avd name)" }
+  ],
+  "wait-for": [
+    { "name": "TRANSPORT", "description": "等待指定传输(usb/tcpip)或状态(device/recovery/reset)" }
+  ],
+  "ppp": [
+    { "name": "TTY", "description": "USB tty 设备" },
+    { "name": "PARAMETER...", "description": "PPP 参数" }
+  ],
+  "keygen": [
+    { "name": "FILE", "description": "私钥保存路径(公钥为 FILE.pub)" }
+  ],
+  "disable-verity": [],
+  "enable-verity": [],
+  "jdwp": []
+}

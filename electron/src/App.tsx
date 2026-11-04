@@ -53,10 +53,13 @@ export default function App() {
           <main className="flex-1 overflow-hidden">
             {activeTab === 'commands' && <CommandsTab />}
             {activeTab === 'env' && <EnvTab />}
-
           </main>
-          <QuickRunBar />
-          <BottomTerminal />
+          {activeTab === 'commands' && (
+            <>
+              <QuickRunBar />
+              <BottomTerminal />
+            </>
+          )}
           <LoadingOverlay visible={globalLoading} />
         </div>
       </div>

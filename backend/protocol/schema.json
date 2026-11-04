@@ -33,14 +33,14 @@
       },
       "required": ["installed", "details"]
     },
-    "CommandParam": {
-      "type": "object",
-      "properties": { "name": { "type": "string" }, "description": { "type": "string" } },
-      "required": ["name", "description"]
-    },
     "CommandSubcommand": {
       "type": "object",
-      "properties": { "name": { "type": "string" }, "description": { "type": "string" } },
+      "properties": {
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "category": { "type": "string" },
+        "has_params": { "type": "boolean" }
+      },
       "required": ["name", "description"]
     },
     "CommandEnvVar": {
@@ -73,7 +73,6 @@
         "version": { "type": "string" },
         "path": { "type": "string" },
         "description": { "type": "string" },
-        "params": { "type": "array", "items": { "$ref": "#/definitions/CommandParam" } },
         "subcommands": { "type": "array", "items": { "$ref": "#/definitions/CommandSubcommand" } },
         "env_vars": { "type": "array", "items": { "$ref": "#/definitions/CommandEnvVar" } },
         "config_sections": { "type": "array", "items": { "$ref": "#/definitions/CommandConfigSection" } }
