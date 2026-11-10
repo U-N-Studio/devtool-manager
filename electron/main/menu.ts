@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, Menu, MenuItemConstructorOptions } from 'electron'
+import { app, Menu, MenuItemConstructorOptions } from 'electron'
 
 export function buildAppMenu(): Menu {
   const isMac = process.platform === 'darwin'
