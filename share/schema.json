@@ -213,6 +213,66 @@
       "result": { "$ref": "#/definitions/ToolInfo" }
     },
     {
+      "name": "packages.list",
+      "params": {
+        "type": "object",
+        "properties": {
+          "func": { "type": "string" },
+          "lang": { "type": "string" },
+          "install": { "type": "string" }
+        },
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": { "type": "string" },
+                "version": { "type": "string" },
+                "installed": { "type": "boolean" },
+                "func_tag": { "type": "string" },
+                "lang_tag": { "type": "string" }
+              },
+              "required": ["name", "installed"]
+            }
+          }
+        },
+        "required": ["items"]
+      }
+    },
+    {
+      "name": "packages.install",
+      "params": {
+        "type": "object",
+        "properties": { "name": { "type": "string" } },
+        "required": ["name"],
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "object",
+        "properties": { "ok": { "type": "boolean" }, "output": { "type": "string" } },
+        "required": ["ok", "output"]
+      }
+    },
+    {
+      "name": "packages.uninstall",
+      "params": {
+        "type": "object",
+        "properties": { "name": { "type": "string" } },
+        "required": ["name"],
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "object",
+        "properties": { "ok": { "type": "boolean" }, "output": { "type": "string" } },
+        "required": ["ok", "output"]
+      }
+    },
+    {
       "name": "commands.list",
       "params": {
         "type": "object",

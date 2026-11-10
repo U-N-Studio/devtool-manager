@@ -8,6 +8,7 @@ import { request, subscribe } from './client'
 import { PROTOCOL_VERSION } from './schema'
 import type {
   CommandDetail,
+  CommandItem,
   SubcommandHelp,
   ToolInfo,
   HistoryEntry,
@@ -55,11 +56,6 @@ export const tools = {
 }
 
 /* ------------------------------ 命令 ------------------------------ */
-
-export interface CommandItem {
-  name: string
-  installed: boolean
-}
 
 export const commands = {
   /** 获取命令列表,可选仅显示已安装 */
