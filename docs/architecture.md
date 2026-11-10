@@ -1,10 +1,59 @@
 # DevTool Manager 架构文档
 
+## 项目结构
+
+```
+devtool-manager/
+├── frontend/              # React 前端（独立模块）
+│   ├── src/
+│   │   ├── components/    # UI 组件（含 ui/ 基础组件）
+│   │   ├── stores/        # Zustand 状态管理
+│   │   ├── api/           # 后端 API 调用层
+│   │   ├── lib/           # 工具函数、IPC、类型重导出
+│   │   └── styles/        # 全局样式
+│   ├── index.html
+│   ├── package.json
+│   ├── tsconfig.json
+│   └── vite.config.ts
+│
+├── electron/              # Electron 主进程
+│   ├── main/              # 主进程代码
+│   │   ├── main.ts        # 入口，IPC 路由
+│   │   ├── pythonBridge.ts    # stdio 桥接
+│   │   ├── window.ts      # 窗口管理
+│   │   └── menu.ts        # 菜单
+│   ├── preload/
+│   │   └── preload.ts     # contextBridge
+│   └── package.json
+│
+├── backend/               # Python 后端
+│   ├── implementations/python/
+│   │   ├── server.py      # JSON-RPC stdio 入口
+│   │   ├── rpc_handlers.py    # 路由分发
+│   │   ├── protocol.py    # 协议校验
+│   │   └── src/core/      # 业务逻辑
+│   │       ├── env.py
+│   │       ├── tools.py
+│   │       ├── packages.py
+│   │       ├── store.py
+│   │       ├── executor.py
+│   │       └── commands/
+│   └── data/              # 静态数据文件
+│
+├── protocol/              # 前后端接口协议
+│   ├── schema.json        # JSON-RPC 协议定义（事实来源）
+│   └── README.md
+│
+└── share/                 # 前后端共享类型
+    ├── types.ts           # TypeScript 类型定义
+    └── schema.ts          # 协议元数据（加载 protocol/schema.json）
+```
+
 ## 整体架构
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
-│                           Frontend (React)                              │
+│                     Frontend (frontend/src/)                            │
 │  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────────────────┐ │
 │  │ components/ │  │   stores/   │  │         api/                    │ │
 │  │  (UI views) │  │ (Zustand)   │  │  ┌─────────┐ ┌──────────────┐  │ │
@@ -15,13 +64,14 @@
 │  │           lib/                  │ │  │schema.ts│  │  types.ts │  │ │
 │  │  ┌─────────┐  ┌─────────────┐  │ │  └─────────┘  └───────────┘  │ │
 │  │  │ ipc.ts  │  │   types.ts  │  │ │                              │ │
-│  │  └────┬────┘  └─────────────┘  │ └────────────────────────────────┘ │
+│  │  └────┬────┘  └─────────────┘  │ │                              │ │
+│  │         │                        │ └────────────────────────────────┘ │
 │           │                         │                                   │
 └───────────┼─────────────────────────┼───────────────────────────────────┘
             │                         │
             ▼                         ▼
 ┌─────────────────────────────────────────────────────────────────────────┐
-│                        Electron Main Process                            │
+│                 Electron Main Process (electron/)                       │
 │  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────────────┐ │
 │  │    main.ts      │  │ pythonBridge.ts │  │     preload.ts          │ │
 │  │  (IPC routing)  │  │ (stdio bridge)  │  │  (contextBridge)        │ │
@@ -69,6 +119,26 @@
 
 ---
 
+## 两层协议
+
+### 前后端接口协议 (`protocol/`)
+
+定义前端与后端之间的 RPC 通信契约。前后端通过 `protocol/schema.json` 保持同步，
+任何满足该协议的实现（当前为 Python stdio JSON-RPC，未来可以是 Go/Node/远程 HTTP）都可替换，
+前端无需改动。
+
+**文件**：
+- `protocol/schema.json` — JSON-RPC 2.0 协议事实来源（方法/入参/出参/通知/错误码）
+- `protocol/README.md` — 协议说明
+- `share/types.ts` — TypeScript 类型定义，与 schema.json 保持同步
+- `share/schema.ts` — 加载 schema.json 供前端消费
+
+### 后端内部协议 (`backend/protocol/`)
+
+定义后端各模块之间的内部通信契约，独立于前后端接口。
+
+---
+
 ## 三层接口定义
 
 ### 第一层：前端 → 后端 (Frontend API)
@@ -79,10 +149,10 @@ Renderer → preload.ts → IPC → main.ts → pythonBridge.ts → stdio → Ba
 ```
 
 **接口文件**：
+- `protocol/schema.json` — JSON-RPC 协议事实来源
 - `share/types.ts` — TypeScript 类型定义（RPC 方法、参数、返回值）
-- `share/schema.json` — JSON-RPC 协议事实来源
-- `electron/src/api/index.ts` — 前端 API 封装（强类型调用函数）
-- `electron/src/api/client.ts` — 传输层适配器
+- `frontend/src/api/index.ts` — 前端 API 封装（强类型调用函数）
+- `frontend/src/api/client.ts` — 传输层适配器
 
 **RPC 方法清单**：
 
@@ -129,8 +199,8 @@ Renderer → preload.ts → IPC → main.ts → pythonBridge.ts → stdio → Ba
 ### 第二层：后端 RPC → Core (Handler → Business)
 
 **接口文件**：
-- `rpc_handlers.py` — HANDLERS 字典，映射方法名到处理函数
-- `src/core/*.py` — 业务逻辑模块
+- `backend/implementations/python/rpc_handlers.py` — HANDLERS 字典，映射方法名到处理函数
+- `backend/implementations/python/src/core/*.py` — 业务逻辑模块
 
 **Handler → Core 函数映射**：
 
@@ -182,7 +252,7 @@ Renderer → preload.ts → IPC → main.ts → pythonBridge.ts → stdio → Ba
 
 | 文件 | 位置 | 说明 |
 |------|------|------|
-| `schema.json` | `protocol/` | JSON-RPC 协议定义（事实来源） |
+| `schema.json` | `protocol/` | 前后端接口协议定义（事实来源） |
 | `command_defs.json` | `backend/data/` | 命令清单（名称、版本参数、描述） |
 | `glossary.json` | `backend/data/` | 配置项术语表 |
 | `git_knowledge.json` | `backend/data/` | Git 子命令中文知识库 |
@@ -273,7 +343,7 @@ interface FavoriteEntry {
 任何新后端只需满足以下条件即可替换 Python 实现：
 
 1. **传输协议**：支持 newline-delimited JSON-RPC 2.0 over stdio
-2. **方法实现**：实现 `share/schema.json` 中声明的所有方法
+2. **方法实现**：实现 `protocol/schema.json` 中声明的所有方法
 3. **通知支持**：发送 `ready`, `executor.output`, `executor.done`, `env.changed` 通知
 
-前端无需任何修改，只需配置 `pythonBridge.ts` 指向新后端可执行文件。
+前端无需任何修改，只需配置 `electron/main/pythonBridge.ts` 指向新后端可执行文件。
