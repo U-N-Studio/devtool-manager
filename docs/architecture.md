@@ -182,7 +182,7 @@ Renderer → preload.ts → IPC → main.ts → pythonBridge.ts → stdio → Ba
 
 | 文件 | 位置 | 说明 |
 |------|------|------|
-| `schema.json` | `share/` | JSON-RPC 协议定义（事实来源） |
+| `schema.json` | `backend/protocol/` | JSON-RPC 协议定义（事实来源） |
 | `command_defs.json` | `backend/data/` | 命令清单（名称、版本参数、描述） |
 | `glossary.json` | `backend/data/` | 配置项术语表 |
 | `git_knowledge.json` | `backend/data/` | Git 子命令中文知识库 |
