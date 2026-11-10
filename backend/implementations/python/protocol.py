@@ -18,6 +18,7 @@ def _resolve_protocol_path():
     MEIPASS 的情况),否则向上三级找 backend/implementations/python -> share/schema.json。
     """
     candidates = [
+        os.path.join(os.path.dirname(__file__), "..", "..", "..", "protocol", "schema.json"),
         os.path.join(os.path.dirname(__file__), "..", "..", "..", "share", "schema.json"),
     ]
     if getattr(sys, "frozen", False):

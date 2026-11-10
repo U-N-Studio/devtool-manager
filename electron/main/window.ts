@@ -9,6 +9,7 @@ export function createMainWindow(): BrowserWindow {
     minHeight: 640,
     frame: false,
     titleBarStyle: 'hidden',
+    show: true,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,

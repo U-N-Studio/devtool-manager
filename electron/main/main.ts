@@ -39,6 +39,12 @@ async function bootstrap(): Promise<void> {
 
   Menu.setApplicationMenu(buildAppMenu())
   mainWindow = createMainWindow()
+  
+  mainWindow.webContents.on('did-finish-load', () => {
+    console.log('[main] window loaded')
+    mainWindow?.show()
+    mainWindow?.focus()
+  })
 }
 
 app.whenReady().then(() => {
