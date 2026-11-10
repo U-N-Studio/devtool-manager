@@ -1,10 +1,10 @@
 /**
  * 协议元数据。
  *
- * 协议唯一事实来源是 backend/protocol/schema.json。
+ * 协议唯一事实来源是 protocol/schema.json。
  */
 
-import schema from '../backend/protocol/schema.json'
+import schema from '../protocol/schema.json'
 
 export interface ProtocolMethod {
   name: string

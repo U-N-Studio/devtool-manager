@@ -1,18 +1,12 @@
 import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
 import electron from 'vite-plugin-electron'
-import renderer from 'vite-plugin-electron-renderer'
-import path from 'path'
 
 export default defineConfig({
   plugins: [
-    react(),
     electron([
       {
         entry: 'main/main.ts',
         vite: { build: { outDir: 'dist-electron', rollupOptions: { external: ['electron'] } } },
-        // Passing onstart disables the plugin's auto-start of Electron.
-        // The dev:electron npm script launches Electron via `wait-on && electron .`.
         onstart: () => {},
       },
       {
@@ -20,8 +14,5 @@ export default defineConfig({
         vite: { build: { outDir: 'dist-electron', rollupOptions: { external: ['electron'] } } },
       },
     ]),
-    renderer(),
   ],
-  resolve: { alias: { '@': path.resolve(__dirname, 'src') } },
-  server: { port: 5173 },
 })
