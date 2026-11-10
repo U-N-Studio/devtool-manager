@@ -5,7 +5,6 @@
  * 后端实现可替换:传输变化只改 client.ts;协议变化改本层函数签名。
  */
 import { request, subscribe } from './client'
-import { PROTOCOL_VERSION } from './schema'
 import type {
   CommandDetail,
   CommandItem,
@@ -132,8 +131,8 @@ export const notifications = {
 /* ------------------------------ 生命周期 ------------------------------ */
 
 export const system = {
-  /** 协议版本号(来自 backend/protocol/schema.json) */
-  protocolVersion: PROTOCOL_VERSION,
+  /** 协议版本号 */
+  protocolVersion: '1.0.0',
   ping: (): Promise<boolean> =>
     request('ping', {}).then((r) => r.pong),
   shutdown: (): Promise<void> =>

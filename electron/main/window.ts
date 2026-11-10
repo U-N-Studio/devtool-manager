@@ -23,7 +23,9 @@ export function createMainWindow(): BrowserWindow {
   if (process.env.NODE_ENV === 'development' || process.env.VITE_DEV_SERVER_URL) {
     win.loadURL('http://localhost:5173')
   } else {
-    win.loadFile(path.join(__dirname, '../dist/index.html'))
+    // 生产环境：resourcesPath 在 asar 外部
+    const resourcesPath = process.resourcesPath.replace('app.asar', 'app.asar.unpacked')
+    win.loadFile(path.join(resourcesPath, 'frontend', 'index.html'))
   }
 
   win.webContents.on('console-message', (_e, level, message, line, sourceId) => {

@@ -7,34 +7,54 @@ Windows 平台本地开发工具管理工具（DevTool Manager），Electron + R
 ```
 ┌─ frontend/ (React + Vite + TypeScript) ─────────────────────┐
 │  src/                                                         │
-│    ├─ api/        后端调用层: 协议视图/传输适配/统一 API      │
-│    ├─ components/  commands / env / executor / layout / ui   │
+│    ├─ api/        后端调用层: 传输适配/统一 API               │
+│    ├─ components/  commands / executor / layout / ui         │
 │    ├─ stores/      Zustand 状态 (commands/env/executor/…)    │
-│    ├─ lib/         ipc.ts (RPC 封装) / types / utils         │
+│    ├─ lib/         ipc.ts (RPC 封装) / utils                 │
 │    └─ styles/      globals.css                               │
 └───────────────────────────────────────────────────────────────┘
-          ▲ IPC (preload 暴露的 window.api)
-          │
-┌─ electron/ (Electron 主进程) ───────────────────────────────┐
-│  main/      主进程: 窗口/菜单/pythonBridge(spawn 后端 + RPC) │
-│  preload/   安全桥: 暴露 window.api 给渲染层                  │
+           ▲ IPC (window.api)
+           │
+┌─ share/ (UI端到Electron的接口类型) ──────────────────────────┐
+│  types.ts      TypeScript 类型定义                           │
 └──────────────────────────────────────────────────────────────┘
-          │ stdio (JSON-RPC 2.0)
-          ▼
+           │
+           ▼
+┌─ electron/ (Electron 主进程) ───────────────────────────────┐
+│  main/      窗口/菜单/pythonBridge                          │
+│  preload/   安全桥: 暴露 window.api                         │
+└──────────────────────────────────────────────────────────────┘
+           │ stdio (JSON-RPC 2.0)
+           │
+┌─ protocol/ (Electron到后端的接口协议) ──────────────────────┐
+│  schema.json   JSON-RPC 2.0 协议定义                        │
+└──────────────────────────────────────────────────────────────┘
+           │
+           ▼
 ┌─ backend/ (独立后端服务) ────────────────────────────────────┐
-│  data/              命令/术语/知识库数据(与实现同级, 任何实现 │
-│    ├─ command_defs.json   37 个内置命令清单                  │
-│    ├─ glossary.json       107 条配置术语表                    │
+│  data/              命令/术语/知识库数据                      │
+│    ├─ command_defs.json   命令清单                            │
+│    ├─ glossary.json       配置术语表                          │
 │    └─ git_knowledge.json  git 中文知识库                      │
-│  implementations/   具体实现(按语言/技术分类)                 │
-│    └─ python/       Python 实现 (当前)                        │
-│       ├─ server.py        stdio 入口 + 协议校验               │
-│       ├─ rpc_handlers.py  方法分发 (commands/env/…)           │
-│       ├─ protocol.py      协议加载与校验                      │
-│       ├─ src/core/        业务逻辑: env/tools/packages/…      │
-│       └─ devtool-backend.spec  PyInstaller 打包 → exe          │
-└────────────────────────────────────────────────────────────┘
+│  implementations/   后端实现                                  │
+│    └─ python/                                                 │
+│       ├─ server.py        stdio 入口                          │
+│       ├─ rpc_handlers.py  方法分发                            │
+│       ├─ protocol.py      协议校验                            │
+│       ├─ src/core/        业务逻辑                            │
+│       └─ devtool-backend.spec 打包 → exe                      │
+└──────────────────────────────────────────────────────────────┘
 ```
+
+### 协议层
+
+两个独立的协议层，分别连接不同的系统边界：
+
+- **`share/`** — UI端到Electron的接口，定义IPC通信的TypeScript类型
+- **`protocol/`** — Electron到后端的接口，定义JSON-RPC 2.0方法/参数/返回值
+
+前端UI通过 `window.api` 调用Electron主进程（类型来自 `share/types.ts`）；
+Electron主进程通过 `pythonBridge` 调用后端（遵循 `protocol/schema.json`）。
 
 ### 数据流
 
@@ -84,10 +104,10 @@ cd frontend
 npm run build
 
 # 2) 打包 Python 后端为单 exe（PyInstaller）
-cd backend
+cd backend/implementations/python
 pyinstaller devtool-backend.spec
 
-# 3) 打包 Electron 应用（electron-builder，内含后端 exe）
+# 3) 打包 Electron 应用（electron-builder，内含前端+后端 exe）
 cd electron
 npm run build
 npm run package
@@ -99,9 +119,9 @@ npm run package
 |------|------|
 | `frontend/` | React 前端（独立模块，可独立开发和构建） |
 | `electron/` | Electron 主进程（窗口管理、IPC 桥接、后端进程管理） |
-| `protocol/` | 前后端接口协议（唯一事实来源，与实现无关） |
+| `protocol/` | Electron到后端的接口协议（JSON-RPC 2.0） |
 | `backend/` | Python 后端服务 |
 | `backend/data/` | 命令/术语/知识库数据（与实现同级，任何实现可读） |
 | `backend/implementations/` | 后端具体实现（当前为 `python/`，可扩展其他实现） |
-| `share/` | 前后端共享类型定义 |
+| `share/` | UI端到Electron的接口类型定义（IPC） |
 | `docs/` | 架构设计与实现计划文档 |

@@ -1,69 +1,55 @@
-# DevTool Manager 后端 API 协议
+# protocol/ - Electron到后端的接口协议
 
-**backend 是独立服务**。前端通过本协议消费后端能力，任何满足该协议的实现
-（当前为 Python stdio JSON-RPC，未来可以是 Go/Node/远程 HTTP 服务）都可替换，
-前端无需改动。
+## 职责
 
-## 协议文件
+定义**Electron主进程到Python后端**的JSON-RPC 2.0通信协议。
 
-- `protocol/schema.json` — JSON-RPC 2.0 协议唯一事实来源（方法/入参/出参/通知/错误码）
-- `backend/implementations/python/protocol.py` — Python 后端加载协议并校验方法名（未声明的方法拒绝 -32601）
-- `share/types.ts` — TypeScript 类型定义，与 schema.json 保持同步
+## 文件
 
-## 传输层
+- `schema.json` - JSON-RPC 2.0 协议定义
+  - 方法定义（methods）
+  - 通知定义（notifications）
+  - 错误码定义（errorCodes）
 
-- **协议**：newline-delimited JSON-RPC 2.0（每行一条 JSON 消息）
-- **当前传输**：stdio（Electron 主进程 spawn 后端进程，stdin 发请求、stdout 收响应）
-- **可替换**：HTTP / WebSocket / 命名管道 等任意传输，只要消息格式是 JSON-RPC 2.0
+## 映射关系
 
-## 方法总览
+```
+┌─────────────────┐
+│    Frontend     │
+│   (React UI)    │
+└────────┬────────┘
+         │
+         │ share/types.ts
+         ↓
+┌─────────────────┐
+│    Electron     │
+│  Main Process   │
+└────────┬────────┘
+         │
+         │ protocol/schema.json  ← 这里
+         ↓
+┌─────────────────┐
+│    Backend      │
+│   (Python)      │
+└─────────────────┘
+```
 
-| 方法 | 入参 | 出参 |
-|------|------|------|
-| `ping` | - | `{ pong: boolean }` |
-| `env.list` | - | `{ items: Record<分类, EnvItem[]> }` |
-| `env.set_var` | `name, value, source?` | `{ ok }` |
-| `env.delete_var` | `name, source?` | `{ ok }` |
-| `env.add_path_entry` | `value, source?` | `{ ok }` |
-| `env.delete_path_entry` | `value, source?` | `{ ok }` |
-| `env.get_raw_path` | `source?` | `{ value }` |
-| `env.python_info` | - | `{ version, pip, platform, executable }` |
-| `tools.info` | `category` | `ToolInfo` |
-| `commands.list` | `installed_only?` | `{ items: CommandItem[] }` |
-| `commands.detail` | `name` | `CommandDetail` |
-| `commands.description` | `name` | `{ text }` |
-| `commands.subcommand_help` | `command, subcommand` | `SubcommandHelp` |
-| `executor.execute` | `command, cwd?, env?` | `{ sessionId }`（输出走通知） |
-| `executor.kill` | `sessionId` | `{ ok }` |
-| `history.list` | - | `{ items: HistoryEntry[] }` |
-| `history.add` | `command, exitCode?` | `{ ok }` |
-| `history.clear` | - | `{ ok }` |
-| `history.delete` | `id` | `{ ok }` |
-| `favorites.list` | - | `{ items: FavoriteEntry[] }` |
-| `favorites.add` | `command, label?` | `{ ok }` |
-| `favorites.remove` | `command` | `{ ok }` |
-| `shutdown` | - | - |
+**Electron 主进程**：
+- 在 `electron/main/pythonBridge.ts` 中调用后端
+- 遵循此协议发送 JSON-RPC 请求
 
-## 通知（后端 → 前端，无 id）
+**后端**：
+- 在 `backend/implementations/python/` 中实现这些方法
+- 使用 `protocol.py` 校验消息格式
 
-| 通知 | 参数 |
-|------|------|
-| `ready` | - |
-| `executor.output` | `{ sessionId, stream: 'stdout'\|'stderr', line }` |
-| `executor.done` | `{ sessionId, exitCode }` |
-| `env.changed` | - |
+## 与 share/ 的关系
 
-## 错误码
+- **share/** - UI端到Electron的接口（IPC）
+- **protocol/** - Electron到后端的接口（JSON-RPC）
+- 两者独立，分别定义不同层之间的通信契约
 
-| code | 含义 |
-|------|------|
-| -32700 | Parse error（JSON 解析失败） |
-| -32600 | Invalid request |
-| -32601 | Method not found（不在协议内） |
-| -32602 | Invalid params |
-| -32603 | Internal error |
+## 原则
 
-## 前端消费
-
-前端 `frontend/src/api/` 层按协议生成强类型调用函数（`api.env.list()` 等），
-方法名从 `schema.json` 读取，与后端保持同步。传输替换时仅改 `api/client.ts`。
+- 只放协议定义，不放实现代码
+- Electron主进程和后端都依赖此目录
+- 修改协议需同时更新Electron和后端实现
