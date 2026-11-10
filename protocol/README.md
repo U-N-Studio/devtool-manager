@@ -65,5 +65,5 @@
 
 ## 前端消费
 
-前端 `electron/src/api/` 层按协议生成强类型调用函数（`api.env.list()` 等），
+前端 `frontend/src/api/` 层按协议生成强类型调用函数（`api.env.list()` 等），
 方法名从 `schema.json` 读取，与后端保持同步。传输替换时仅改 `api/client.ts`。

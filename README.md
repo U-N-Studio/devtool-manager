@@ -5,18 +5,22 @@ Windows 平台本地开发工具管理工具（DevTool Manager），Electron + R
 ## 架构
 
 ```
-┌─ electron/ (Electron + React + Vite + TypeScript) ────────┐
-│  main/      主进程: 窗口/菜单/pythonBridge(spawn 后端 + RPC) │
-│  preload/   安全桥: 暴露 window.api 给渲染层                  │
-│  src/       渲染层 (React + Zustand + Tailwind + shadcn/ui) │
+┌─ frontend/ (React + Vite + TypeScript) ─────────────────────┐
+│  src/                                                         │
 │    ├─ api/        后端调用层: 协议视图/传输适配/统一 API      │
-│    ├─ components/  commands / env / executor / layout / ui │
-│    ├─ stores/      Zustand 状态 (commands/env/executor/…)   │
-│    ├─ lib/         ipc.ts (RPC 封装) / types / utils        │
-│    └─ styles/      globals.css                              │
-└────────────────────────────────────────────────────────────┘
+│    ├─ components/  commands / env / executor / layout / ui   │
+│    ├─ stores/      Zustand 状态 (commands/env/executor/…)    │
+│    ├─ lib/         ipc.ts (RPC 封装) / types / utils         │
+│    └─ styles/      globals.css                               │
+└───────────────────────────────────────────────────────────────┘
           ▲ IPC (preload 暴露的 window.api)
           │
+┌─ electron/ (Electron 主进程) ───────────────────────────────┐
+│  main/      主进程: 窗口/菜单/pythonBridge(spawn 后端 + RPC) │
+│  preload/   安全桥: 暴露 window.api 给渲染层                  │
+└──────────────────────────────────────────────────────────────┘
+          │ stdio (JSON-RPC 2.0)
+          ▼
 ┌─ backend/ (独立后端服务) ────────────────────────────────────┐
 │  protocol/          协议(与实现无关, 唯一事实来源)            │
 │    ├─ schema.json   JSON-RPC 2.0 协议: 方法/入参/出参/通知    │
@@ -61,12 +65,16 @@ React 渲染层 → `window.api` (preload) → Electron 主进程 `pythonBridge`
 ## 开发
 
 ```bash
-# 前端 + 后端 + Electron 一并启动（开发模式）
+# 1. 启动前端开发服务器（新窗口）
+cd frontend
+npm run dev
+
+# 2. 启动 Electron 主进程（另一个窗口）
 cd electron
-npm run dev:electron
+npm start
 ```
 
-或双击根目录 `start-electron.bat`。
+或双击根目录 `start-electron.bat`（自动启动两者）。
 
 - 后端为独立 Python 进程，代码在 `backend/`，改动后重启应用生效（无需重新打包）。
 - 前端热更新（Vite），改动即时生效。
@@ -74,13 +82,17 @@ npm run dev:electron
 ## 打包
 
 ```bash
-# 1) 打包 Python 后端为单 exe（PyInstaller）
+# 1) 打包前端
+cd frontend
+npm run build
+
+# 2) 打包 Python 后端为单 exe（PyInstaller）
 cd backend
 pyinstaller devtool-backend.spec
 
-# 2) 打包 Electron 应用（electron-builder，内含后端 exe）
+# 3) 打包 Electron 应用（electron-builder，内含后端 exe）
 cd electron
-npm run build:electron
+npm run build
 npm run package
 ```
 
@@ -88,8 +100,11 @@ npm run package
 
 | 路径 | 说明 |
 |------|------|
-| `backend/protocol/` | 后端协议（唯一事实来源，与实现无关） |
+| `frontend/` | React 前端（独立模块，可独立开发和构建） |
+| `electron/` | Electron 主进程（窗口管理、IPC 桥接、后端进程管理） |
+| `protocol/` | 前后端接口协议（唯一事实来源，与实现无关） |
+| `backend/` | Python 后端服务 |
 | `backend/data/` | 命令/术语/知识库数据（与实现同级，任何实现可读） |
 | `backend/implementations/` | 后端具体实现（当前为 `python/`，可扩展其他实现） |
-| `electron/` | Electron + React 前端 |
+| `share/` | 前后端共享类型定义 |
 | `docs/` | 架构设计与实现计划文档 |
