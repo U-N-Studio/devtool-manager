@@ -1,6 +1,6 @@
 """后端 API 协议加载与校验。
 
-协议文件: share/schema.json,是前后端唯一事实来源。
+协议文件: protocol/schema.json,是前后端唯一事实来源。
 后端在此校验方法是否在协议内,防止暴露未协议化的方法;
 前端 api/ 层按协议生成强类型调用函数。替换后端实现时,
 任何实现只要满足该协议即可被前端直接消费。
@@ -14,17 +14,16 @@ import sys
 def _resolve_protocol_path():
     """定位协议文件。
 
-    优先取 share/schema.json(源码开发态,含 PyInstaller 打包进
-    MEIPASS 的情况),否则向上三级找 backend/implementations/python -> share/schema.json。
+    优先取 protocol/schema.json(源码开发态,含 PyInstaller 打包进
+    MEIPASS 的情况),否则向上三级找 backend/implementations/python -> protocol/schema.json。
     """
     candidates = [
         os.path.join(os.path.dirname(__file__), "..", "..", "..", "protocol", "schema.json"),
-        os.path.join(os.path.dirname(__file__), "..", "..", "..", "share", "schema.json"),
     ]
     if getattr(sys, "frozen", False):
         meipass = getattr(sys, "_MEIPASS", None)
         if meipass:
-            candidates.insert(0, os.path.join(meipass, "share", "schema.json"))
+            candidates.insert(0, os.path.join(meipass, "protocol", "schema.json"))
     for p in candidates:
         if os.path.isfile(p):
             return p
