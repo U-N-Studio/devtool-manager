@@ -119,7 +119,7 @@ devtool-manager/
 
 ---
 
-## 两层协议
+## 协议
 
 ### 前后端接口协议 (`protocol/`)
 
@@ -132,10 +132,6 @@ devtool-manager/
 - `protocol/README.md` — 协议说明
 - `share/types.ts` — TypeScript 类型定义，与 schema.json 保持同步
 - `share/schema.ts` — 加载 schema.json 供前端消费
-
-### 后端内部协议 (`backend/protocol/`)
-
-定义后端各模块之间的内部通信契约，独立于前后端接口。
 
 ---
 

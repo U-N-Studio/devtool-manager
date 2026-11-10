@@ -22,9 +22,6 @@ Windows 平台本地开发工具管理工具（DevTool Manager），Electron + R
           │ stdio (JSON-RPC 2.0)
           ▼
 ┌─ backend/ (独立后端服务) ────────────────────────────────────┐
-│  protocol/          协议(与实现无关, 唯一事实来源)            │
-│    ├─ schema.json   JSON-RPC 2.0 协议: 方法/入参/出参/通知    │
-│    └─ README.md     协议文档                                  │
 │  data/              命令/术语/知识库数据(与实现同级, 任何实现 │
 │    ├─ command_defs.json   37 个内置命令清单                  │
 │    ├─ glossary.json       107 条配置术语表                    │
@@ -46,7 +43,7 @@ React 渲染层 → `window.api` (preload) → Electron 主进程 `pythonBridge`
 生产态 `devtool-backend.exe`）→ 通过 stdin/stdout 以一行一条 JSON-RPC 2.0
 消息交互 → 结果返回渲染层。
 
-后端实现可替换：新增一个满足 `backend/protocol/schema.json` 的实现的目录即可
+后端实现可替换：新增一个满足 `protocol/schema.json` 的实现的目录即可
 （如 `implementations/go/`），前端调用层 (`src/api/`) 零改动。
 
 执行类命令（`executor.execute`）特殊：立即返回 sessionId，stdout/stderr 逐行
