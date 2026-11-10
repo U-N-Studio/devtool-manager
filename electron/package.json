@@ -8,7 +8,7 @@
     "dev": "vite build --watch",
     "build": "vite build",
     "start": "electron .",
-    "dev:electron": "concurrently \"vite build --watch\" \"wait-on electron/dist-electron/main.js && electron .\"",
+    "dev:electron": "concurrently \"vite build --watch\" \"wait-on dist-electron/main.js && cross-env NODE_ENV=development electron .\"",
     "build:backend": "powershell -ExecutionPolicy Bypass -File ../scripts/build-backend.ps1",
     "build:all": "npm run build:backend && npm run build",
     "package": "electron-builder",
