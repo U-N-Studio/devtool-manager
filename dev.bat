@@ -1,6 +1,8 @@
 @echo off
 chcp 65001 >nul
 title DevTool Manager - Development
+setlocal enabledelayedexpansion
+
 echo ========================================
 echo   DevTool Manager Development Mode
 echo ========================================
@@ -16,46 +18,57 @@ if %ERRORLEVEL% NEQ 0 (
 )
 
 :: 检查依赖
-echo [1/4] Checking dependencies...
+echo [1/3] Checking dependencies...
 cd /d "%~dp0frontend"
 if not exist "node_modules" (
     echo Installing frontend dependencies...
-    call npm install
+    call npm install --silent
 )
 cd /d "%~dp0electron"
 if not exist "node_modules" (
     echo Installing electron dependencies...
-    call npm install
+    call npm install --silent
 )
 cd /d "%~dp0"
 
 :: 生成类型
-echo [2/4] Generating types from protocol...
+echo [2/3] Generating types from protocol...
 node scripts/generate-types.mjs
 
-:: 启动后端监控
-echo [3/4] Starting backend file watcher...
-cd /d "%~dp0backend"
-start "Backend Watcher" cmd /k "echo Watching backend changes... && npx nodemon --watch implementations/python --exec \"echo Backend changed, restart manually\""
-cd /d "%~dp0"
-
 :: 启动前端开发服务器
-echo [4/4] Starting development servers...
+echo [3/3] Starting frontend dev server...
 cd /d "%~dp0frontend"
-start "Frontend Dev" cmd /k "npm run dev"
+start "DevTool-Frontend" cmd /k "npm run dev"
 
-:: 等待前端就绪
-echo Waiting for frontend...
-timeout /t 2 /nobreak >nul
+:: 等待前端就绪（检查端口 5173）
+echo Waiting for frontend to be ready...
+set /a retries=0
+:wait_loop
+timeout /t 1 /nobreak >nul
+netstat -ano | findstr ":5173" | findstr "LISTENING" >nul 2>nul
+if !ERRORLEVEL! EQU 0 goto :frontend_ready
+set /a retries+=1
+if !retries! GEQ 30 (
+    echo [ERROR] Frontend failed to start within 30 seconds
+    pause
+    exit /b 1
+)
+echo   Still waiting... ^(!retries!/30^)
+goto :wait_loop
+
+:frontend_ready
+echo   Frontend ready at http://localhost:5173
 
 :: 启动 Electron
+echo Starting Electron...
 cd /d "%~dp0electron"
-start "Electron" cmd /k "npm run dev:electron"
+start "DevTool-Electron" cmd /k "npm run dev:electron"
 
 echo.
 echo ========================================
 echo   Development servers started!
 echo   Frontend: http://localhost:5173
-echo   Press Ctrl+C in each window to stop
+echo   Close both "DevTool-*" windows to stop
 echo ========================================
 echo.
+pause
