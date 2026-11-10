@@ -48,7 +48,7 @@ export function CommandDetailCard({ detail }: CommandDetailCardProps) {
   // 子命令按 category 分组(后端 adb 已带分类,其他命令无 category 归"其他")
   const groupedSubcommands = useMemo(() => {
     const groups = new Map<string, typeof detail.subcommands>()
-    for (const sc of detail.subcommands) {
+    for (const sc of detail.subcommands ?? []) {
       const cat = sc.category || '其他'
       const list = groups.get(cat)
       if (list) {
@@ -71,7 +71,7 @@ export function CommandDetailCard({ detail }: CommandDetailCardProps) {
   useEffect(() => {
     let cancelled = false
     const namesToFetch = new Set<string>()
-    detail.env_vars.forEach((v: CommandEnvVar) => namesToFetch.add(v.name))
+    ;(detail.env_vars ?? []).forEach((v: CommandEnvVar) => namesToFetch.add(v.name))
 
     const loadAll = async () => {
       const entries = await Promise.all(
@@ -209,10 +209,10 @@ export function CommandDetailCard({ detail }: CommandDetailCardProps) {
           </div>
         )}
 
-        {detail.subcommands.length > 0 && (
+        {(detail.subcommands?.length ?? 0) > 0 && (
           <Collapsible defaultOpen>
             <CollapsibleTrigger className="flex w-full items-center justify-between rounded-md px-2 py-1.5 text-sm font-medium hover:bg-accent">
-              <span>子命令 ({detail.subcommands.length}) — 点击展开参数,再点名称插入命令</span>
+              <span>子命令 ({detail.subcommands?.length ?? 0}) — 点击展开参数,再点名称插入命令</span>
               <ChevronDown className="h-4 w-4" />
             </CollapsibleTrigger>
             <CollapsibleContent>
@@ -222,7 +222,7 @@ export function CommandDetailCard({ detail }: CommandDetailCardProps) {
                     {category}
                   </div>
                   <div className="grid grid-cols-2 gap-1.5 xl:grid-cols-3">
-                    {items.map((sc) => {
+                    {items?.map((sc) => {
                       const expanded = expandedSubs.has(sc.name)
                       const help = subHelps[sc.name]
                       const loading = loadingSubs.has(sc.name)
@@ -266,14 +266,14 @@ export function CommandDetailCard({ detail }: CommandDetailCardProps) {
                                   <span>加载参数中...</span>
                                 </div>
                               )}
-                              {!loading && help && help.params.length === 0 && help.pathParams.length === 0 && (
+                              {!loading && help && (help.params?.length ?? 0) === 0 && (help.pathParams?.length ?? 0) === 0 && (
                                 <div className="text-muted-foreground">暂无参数说明</div>
                               )}
-                              {!loading && help && help.params.length > 0 && (
+                              {!loading && help && (help.params?.length ?? 0) > 0 && (
                                 <div>
                                   <div className="mb-1 font-medium">选项参数</div>
                                   <ul className="space-y-0.5">
-                                    {help.params.map((p) => (
+                                    {(help.params ?? []).map((p) => (
                                       <li key={p.name} className="flex flex-col gap-0.5">
                                         <TooltipProvider>
                                           <Tooltip>
@@ -303,11 +303,11 @@ export function CommandDetailCard({ detail }: CommandDetailCardProps) {
                                   </ul>
                                 </div>
                               )}
-                              {!loading && help && help.pathParams.length > 0 && (
+                              {!loading && help && (help.pathParams?.length ?? 0) > 0 && (
                                 <div>
                                   <div className="mb-1 font-medium">路径/位置参数</div>
                                   <ul className="space-y-0.5">
-                                    {help.pathParams.map((p) => (
+                                    {(help.pathParams ?? []).map((p) => (
                                       <li key={p.name} className="flex flex-col gap-0.5">
                                         <span className="font-mono font-medium text-blue-600 dark:text-blue-400">
                                           {p.name}
@@ -334,15 +334,15 @@ export function CommandDetailCard({ detail }: CommandDetailCardProps) {
           </Collapsible>
         )}
 
-        {detail.env_vars.length > 0 && (
+        {(detail.env_vars?.length ?? 0) > 0 && (
           <Collapsible>
             <CollapsibleTrigger className="flex w-full items-center justify-between rounded-md px-2 py-1.5 text-sm font-medium hover:bg-accent">
-              <span>环境变量 ({detail.env_vars.length})</span>
+              <span>环境变量 ({detail.env_vars?.length ?? 0})</span>
               <ChevronDown className="h-4 w-4" />
             </CollapsibleTrigger>
             <CollapsibleContent>
               <ul className="mt-1 space-y-0.5 border-l border-border pl-3">
-                {detail.env_vars.map((v) => (
+                {(detail.env_vars ?? []).map((v) => (
                   <li
                     key={v.name}
                     className="flex flex-col gap-0.5 py-0.5 text-xs"
@@ -374,15 +374,15 @@ export function CommandDetailCard({ detail }: CommandDetailCardProps) {
           </Collapsible>
         )}
 
-        {detail.config_sections.length > 0 && (
+        {(detail.config_sections?.length ?? 0) > 0 && (
           <Collapsible>
             <CollapsibleTrigger className="flex w-full items-center justify-between rounded-md px-2 py-1.5 text-sm font-medium hover:bg-accent">
-              <span>配置段 ({detail.config_sections.length})</span>
+              <span>配置段 ({detail.config_sections?.length ?? 0})</span>
               <ChevronDown className="h-4 w-4" />
             </CollapsibleTrigger>
             <CollapsibleContent>
               <div className="mt-1 space-y-3 border-l border-border pl-3">
-                {detail.config_sections.map((sec, idx) => (
+                {(detail.config_sections ?? []).map((sec, idx) => (
                   <div key={`${sec.level}-${idx}`} className="space-y-1">
                     <div className="text-xs font-medium">{sec.level}</div>
                     <ul className="space-y-0.5 text-xs">
