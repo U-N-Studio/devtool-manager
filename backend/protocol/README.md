@@ -6,8 +6,9 @@
 
 ## 协议文件
 
-- `schema.json` — JSON-RPC 2.0 协议唯一事实来源（方法/入参/出参/通知/错误码）
-- `protocol.py` — Python 后端加载协议并校验方法名（未声明的方法拒绝 -32601）
+- `share/schema.json` — JSON-RPC 2.0 协议唯一事实来源（方法/入参/出参/通知/错误码）
+- `backend/implementations/python/protocol.py` — Python 后端加载协议并校验方法名（未声明的方法拒绝 -32601）
+- `share/types.ts` — TypeScript 类型定义，与 schema.json 保持同步
 
 ## 传输层
 
