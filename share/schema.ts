@@ -4,7 +4,7 @@
  * 协议唯一事实来源是 backend/protocol/schema.json。
  */
 
-import schema from './schema.json'
+import schema from '../backend/protocol/schema.json'
 
 export interface ProtocolMethod {
   name: string
