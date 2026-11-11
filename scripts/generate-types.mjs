@@ -2,6 +2,10 @@
 /**
  * 从 protocol/schema.json 生成 TypeScript 类型定义
  * 用法: node scripts/generate-types.mjs
+ * 
+ * 生成目标:
+ * - share/types.ts (前端/Electron 共享类型)
+ * - backend/implementations/nodejs/src/types.ts (Node.js 后端类型)
  */
 
 import fs from 'fs'
@@ -12,7 +16,10 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const ROOT = path.resolve(__dirname, '..')
 
 const schemaPath = path.join(ROOT, 'protocol/schema.json')
-const outputPath = path.join(ROOT, 'share/types.ts')
+const outputPaths = [
+  path.join(ROOT, 'share/types.ts'),
+  path.join(ROOT, 'backend/implementations/nodejs/src/types.ts'),
+]
 
 const schema = JSON.parse(fs.readFileSync(schemaPath, 'utf-8'))
 
@@ -185,5 +192,12 @@ function generateTypes() {
 }
 
 const output = generateTypes()
-fs.writeFileSync(outputPath, output, 'utf-8')
-console.log(`✓ 已生成 ${outputPath}`)
+for (const outputPath of outputPaths) {
+  // 确保目录存在
+  const dir = path.dirname(outputPath)
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true })
+  }
+  fs.writeFileSync(outputPath, output, 'utf-8')
+  console.log(`✓ 已生成 ${outputPath}`)
+}

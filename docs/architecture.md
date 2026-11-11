@@ -19,26 +19,42 @@ devtool-manager/
 ├── electron/              # Electron 主进程
 │   ├── main/              # 主进程代码
 │   │   ├── main.ts        # 入口，IPC 路由
-│   │   ├── pythonBridge.ts    # stdio 桥接
+│   │   ├── pythonBridge.ts    # Python 后端 stdio 桥接
+│   │   ├── nodeBridge.ts      # Node.js 后端 stdio 桥接
 │   │   ├── window.ts      # 窗口管理
 │   │   └── menu.ts        # 菜单
 │   ├── preload/
 │   │   └── preload.ts     # contextBridge
 │   └── package.json
 │
-├── backend/               # Python 后端
-│   ├── implementations/python/
-│   │   ├── server.py      # JSON-RPC stdio 入口
-│   │   ├── rpc_handlers.py    # 路由分发
-│   │   ├── protocol.py    # 协议校验
-│   │   └── src/core/      # 业务逻辑
-│   │       ├── env.py
-│   │       ├── tools.py
-│   │       ├── packages.py
-│   │       ├── store.py
-│   │       ├── executor.py
-│   │       └── commands/
-│   └── data/              # 静态数据文件
+├── backend/               # 后端实现（多语言）
+│   ├── implementations/
+│   │   ├── python/        # Python 后端实现
+│   │   │   ├── server.py      # JSON-RPC stdio 入口
+│   │   │   ├── rpc_handlers.py    # 路由分发
+│   │   │   ├── protocol.py    # 协议校验
+│   │   │   └── src/core/      # 业务逻辑
+│   │   │       ├── env.py
+│   │   │       ├── tools.py
+│   │   │       ├── packages.py
+│   │   │       ├── store.py
+│   │   │       ├── executor.py
+│   │   │       └── commands/
+│   │   └── nodejs/        # Node.js 后端实现
+│   │       ├── src/
+│   │       │   ├── index.ts       # 入口
+│   │       │   ├── rpc-server.ts  # JSON-RPC 服务器
+│   │       │   ├── rpc-handlers.ts # 路由分发
+│   │       │   └── core/          # 业务逻辑
+│   │       │       ├── env.ts
+│   │       │       ├── tools.ts
+│   │       │       ├── packages.ts
+│   │       │       ├── history.ts
+│   │       │       ├── executor.ts
+│   │       │       └── commands.ts
+│   │       ├── package.json
+│   │       └── tsconfig.json
+│   └── data/              # 静态数据文件（共享）
 │
 ├── protocol/              # 前后端接口协议
 │   ├── schema.json        # JSON-RPC 协议定义（事实来源）
@@ -73,8 +89,8 @@ devtool-manager/
 ┌─────────────────────────────────────────────────────────────────────────┐
 │                 Electron Main Process (electron/)                       │
 │  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────────────┐ │
-│  │    main.ts      │  │ pythonBridge.ts │  │     preload.ts          │ │
-│  │  (IPC routing)  │  │ (stdio bridge)  │  │  (contextBridge)        │ │
+│  │    main.ts      │  │ pythonBridge.ts │  │    nodeBridge.ts        │ │
+│  │  (IPC routing)  │  │ (Python 桥接)   │  │  (Node.js 桥接)         │ │
 │  └────────┬────────┘  └────────┬────────┘  └───────────┬─────────────┘ │
 │           │                    │                       │                │
 │           └────────────────────┼───────────────────────┘                │
@@ -83,7 +99,10 @@ devtool-manager/
                                  │ stdio (JSON-RPC 2.0)
                                  ▼
 ┌─────────────────────────────────────────────────────────────────────────┐
-│                        Backend (Python)                                 │
+│                    Backend (Python / Node.js)                           │
+│  通过环境变量 BACKEND_TYPE=python|nodejs 选择后端实现                   │
+├─────────────────────────────────────────────────────────────────────────┤
+│  Python 后端:                                                           │
 │  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────────────┐ │
 │  │   server.py     │  │ rpc_handlers.py │  │    protocol.py          │ │
 │  │  (main loop)    │  │  (HANDLERS)     │  │  (schema validation)    │ │
@@ -104,7 +123,25 @@ devtool-manager/
 │  │  │              (子进程执行器,流式输出)                              │││
 │  │  └─────────────────────────────────────────────────────────────────┘││
 │  └─────────────────────────────────────────────────────────────────────┘│
-│                                                                         │
+├─────────────────────────────────────────────────────────────────────────┤
+│  Node.js 后端:                                                          │
+│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────────────┐ │
+│  │   index.ts      │  │ rpc-server.ts   │  │  rpc-handlers.ts        │ │
+│  │  (entry point)  │  │ (JSON-RPC 服务) │  │   (方法分发)             │ │
+│  └────────┬────────┘  └────────┬────────┘  └───────────┬─────────────┘ │
+│           │                    │                       │                │
+│           └────────────────────┼───────────────────────┘                │
+│                                │                                        │
+│  ┌─────────────────────────────▼───────────────────────────────────────┐│
+│  │                        src/core/                                    ││
+│  │  ┌─────────┐ ┌─────────┐ ┌──────────┐ ┌─────────┐ ┌─────────────┐ ││
+│  │  │  env.ts │ │ tools.ts│ │packages.ts│ │history.ts│ │ commands.ts │ ││
+│  │  └─────────┘ └─────────┘ └──────────┘ └─────────┘ └─────────────┘ ││
+│  │  ┌─────────────────────────────────────────────────────────────────┐││
+│  │  │                     executor.ts                                │││
+│  │  │              (子进程执行器,流式输出)                              │││
+│  │  └─────────────────────────────────────────────────────────────────┘││
+│  └─────────────────────────────────────────────────────────────────────┘│
 └─────────────────────────────────────────────────────────────────────────┘
                                  │
                                  ▼
@@ -124,7 +161,7 @@ devtool-manager/
 ### 前后端接口协议 (`protocol/`)
 
 定义前端与后端之间的 RPC 通信契约。前后端通过 `protocol/schema.json` 保持同步，
-任何满足该协议的实现（当前为 Python stdio JSON-RPC，未来可以是 Go/Node/远程 HTTP）都可替换，
+任何满足该协议的实现（Python stdio JSON-RPC / Node.js stdio JSON-RPC / Go / 远程 HTTP）都可替换，
 前端无需改动。
 
 **文件**：
@@ -141,7 +178,7 @@ devtool-manager/
 
 **传输路径**：
 ```
-Renderer → preload.ts → IPC → main.ts → pythonBridge.ts → stdio → Backend
+Renderer → preload.ts → IPC → main.ts → pythonBridge.ts / nodeBridge.ts → stdio → Backend
 ```
 
 **接口文件**：
@@ -194,9 +231,13 @@ Renderer → preload.ts → IPC → main.ts → pythonBridge.ts → stdio → Ba
 
 ### 第二层：后端 RPC → Core (Handler → Business)
 
-**接口文件**：
+**Python 后端接口文件**：
 - `backend/implementations/python/rpc_handlers.py` — HANDLERS 字典，映射方法名到处理函数
 - `backend/implementations/python/src/core/*.py` — 业务逻辑模块
+
+**Node.js 后端接口文件**：
+- `backend/implementations/nodejs/src/rpc-handlers.ts` — 注册方法处理器
+- `backend/implementations/nodejs/src/core/*.ts` — 业务逻辑模块
 
 **Handler → Core 函数映射**：
 
@@ -336,10 +377,10 @@ interface FavoriteEntry {
 
 ## 替换后端实现
 
-任何新后端只需满足以下条件即可替换 Python 实现：
+任何新后端只需满足以下条件即可替换现有实现：
 
 1. **传输协议**：支持 newline-delimited JSON-RPC 2.0 over stdio
 2. **方法实现**：实现 `protocol/schema.json` 中声明的所有方法
 3. **通知支持**：发送 `ready`, `executor.output`, `executor.done`, `env.changed` 通知
 
-前端无需任何修改，只需配置 `electron/main/pythonBridge.ts` 指向新后端可执行文件。
+前端无需任何修改，只需配置环境变量 `BACKEND_TYPE` 或修改 `electron/main/main.ts` 中桥接选择逻辑。

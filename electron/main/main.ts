@@ -2,17 +2,28 @@ import { app, BrowserWindow, ipcMain, Menu, IpcMainEvent, dialog } from 'electro
 import { createMainWindow } from './window'
 import { buildAppMenu } from './menu'
 import { PythonBridge } from './pythonBridge'
+import { NodeBridge } from './nodeBridge'
 
 let mainWindow: BrowserWindow | null = null
-let bridge: PythonBridge | null = null
+let bridge: PythonBridge | NodeBridge | null = null
+let bridgeType: 'python' | 'nodejs' = 'python'
 
 async function bootstrap(): Promise<void> {
-  bridge = new PythonBridge()
+  // 通过环境变量选择后端类型
+  bridgeType = (process.env.BACKEND_TYPE as 'python' | 'nodejs') || 'python'
+  console.log(`[main] Starting with ${bridgeType} backend`)
+
+  if (bridgeType === 'nodejs') {
+    bridge = new NodeBridge()
+  } else {
+    bridge = new PythonBridge()
+  }
+  
   await bridge.start()
 
   ipcMain.on('rpc:request', async (event: IpcMainEvent, request: { id: string; method: string; params?: object }) => {
     try {
-      if (!bridge) throw new Error('Python bridge not initialized')
+      if (!bridge) throw new Error('Backend not initialized')
       const result = await bridge.rpc(request.method, request.params)
       event.sender.send('rpc:response', { id: request.id, result })
     } catch (e: any) {
