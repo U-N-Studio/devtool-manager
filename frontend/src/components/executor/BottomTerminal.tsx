@@ -7,9 +7,17 @@ import {
   Square,
   TerminalSquare,
   CornerLeftDown,
+  FolderOpen,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog'
 import { useAppStore } from '@/stores/appStore'
 import { useExecutorStore } from '@/stores/executorStore'
 import { cn } from '@/lib/utils'
@@ -26,12 +34,16 @@ export function BottomTerminal() {
   const isRunning = useExecutorStore((s) => s.isRunning)
   const exitCode = useExecutorStore((s) => s.exitCode)
   const lastCommand = useExecutorStore((s) => s.lastCommand)
+  const cwd = useExecutorStore((s) => s.cwd)
   const execute = useExecutorStore((s) => s.execute)
   const kill = useExecutorStore((s) => s.kill)
   const clearOutput = useExecutorStore((s) => s.clearOutput)
   const navigateHistory = useExecutorStore((s) => s.navigateHistory)
+  const setCwd = useExecutorStore((s) => s.setCwd)
 
   const [input, setInput] = useState('')
+  const [cwdInput, setCwdInput] = useState('')
+  const [cwdDialogOpen, setCwdDialogOpen] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const resizingRef = useRef(false)
@@ -128,7 +140,7 @@ export function BottomTerminal() {
     >
       <div className="terminal-header flex h-8 items-center gap-2 border-b px-2">
         <div
-          className="flex flex-1 cursor-row-resize items-center gap-2"
+          className="flex cursor-row-resize items-center gap-2"
           onMouseDown={startResize}
         >
           <TerminalSquare className="terminal-muted h-3.5 w-3.5" />
@@ -153,6 +165,79 @@ export function BottomTerminal() {
             </span>
           )}
         </div>
+        <Dialog open={cwdDialogOpen} onOpenChange={setCwdDialogOpen}>
+          <DialogTrigger asChild>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="terminal-btn flex h-6 flex-1 justify-start gap-1 px-1.5 text-left"
+              title="切换工作目录"
+            >
+              <FolderOpen className="h-3 w-3 shrink-0" />
+              {cwd ? (
+                <span className="truncate text-[10px]">{cwd}</span>
+              ) : (
+                <span className="text-[10px]">默认</span>
+              )}
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>切换工作目录</DialogTitle>
+            </DialogHeader>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 shrink-0 gap-1 px-2 text-xs"
+                onClick={async () => {
+                  const dir = await window.api.selectDirectory()
+                  if (dir) {
+                    setCwdInput(dir)
+                  }
+                }}
+              >
+                <FolderOpen className="h-3.5 w-3.5" />
+                浏览
+              </Button>
+              <input
+                value={cwdInput}
+                onChange={(e) => setCwdInput(e.target.value)}
+                placeholder="输入目录路径，如 D:\Projects"
+                className="terminal-text flex-1 rounded border border-border bg-background px-2 py-1 font-mono text-xs focus:outline-none focus:ring-1 focus:ring-ring"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    setCwd(cwdInput.trim() || '')
+                    setCwdDialogOpen(false)
+                  }
+                }}
+              />
+              <Button
+                size="sm"
+                className="h-7 shrink-0"
+                onClick={() => {
+                  setCwd(cwdInput.trim() || '')
+                  setCwdDialogOpen(false)
+                }}
+              >
+                确定
+              </Button>
+            </div>
+            {cwd && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 text-xs"
+                onClick={() => {
+                  setCwd('')
+                  setCwdDialogOpen(false)
+                }}
+              >
+                重置为默认目录
+              </Button>
+            )}
+          </DialogContent>
+        </Dialog>
         <div className="ml-auto flex items-center gap-0.5">
           <Button
             variant="ghost"
@@ -226,7 +311,14 @@ export function BottomTerminal() {
             ) : (
               lines.map((line, i) => {
                 if (line === '') {
-                  return (
+  const handleCwdSelect = async () => {
+    const dir = await window.api.selectDirectory()
+    if (dir) {
+      setCwd(dir)
+    }
+  }
+
+  return (
                     <div key={i} className="terminal-text">
                       {'\u00A0'}
                     </div>

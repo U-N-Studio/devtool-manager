@@ -55,4 +55,5 @@ contextBridge.exposeInMainWorld('api', {
   windowMinimize: () => ipcRenderer.send('window:minimize'),
   windowMaximizeToggle: () => ipcRenderer.send('window:maximizeToggle'),
   windowClose: () => ipcRenderer.send('window:close'),
+  selectDirectory: (): Promise<string | null> => ipcRenderer.invoke('dialog:selectDirectory'),
 })

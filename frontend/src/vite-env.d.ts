@@ -8,5 +8,6 @@ interface Window {
     windowMinimize: () => void
     windowMaximizeToggle: () => void
     windowClose: () => void
+    selectDirectory: () => Promise<string | null>
   }
 }

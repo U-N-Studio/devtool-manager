@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, Menu, IpcMainEvent } from 'electron'
+import { app, BrowserWindow, ipcMain, Menu, IpcMainEvent, dialog } from 'electron'
 import { createMainWindow } from './window'
 import { buildAppMenu } from './menu'
 import { PythonBridge } from './pythonBridge'
@@ -36,6 +36,15 @@ async function bootstrap(): Promise<void> {
     }
   })
   ipcMain.on('window:close', () => mainWindow?.close())
+
+  ipcMain.handle('dialog:selectDirectory', async () => {
+    const result = await dialog.showOpenDialog({
+      properties: ['openDirectory'],
+      title: '选择工作目录',
+    })
+    if (result.canceled || result.filePaths.length === 0) return null
+    return result.filePaths[0]
+  })
 
   Menu.setApplicationMenu(buildAppMenu())
   mainWindow = createMainWindow()
